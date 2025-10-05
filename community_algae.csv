@@ -1,9 +1,92 @@
-Location,Date,Time,Temp,Salinity (ppt),Karenia sp.,Gymnoids,DInoflagellates,Diatoms,Picoplankton,Prasinophyte,Cryptophyte,Coccolith,Unidentified,Notes
-Wright Is/ Yilki Bay/reef,21/09/2025,8.32am,14.2,33.1,0,0,56,167,556,56,0,0,111,Sample from 0.5-1m.  No dolphins sllight foam nearby
-Wright Is/Dry Reef,21/09/2025,8.40am,14.5,33.5,0,0,0,0,667,0,0,0,500,"Pavlova foam, but clearish sample.  Off grid copepod and eggs"
-Olivers Reef,21/09/2025,8.59am,14.3,33.3,0,0,56,0,0,0,0,0,278,"No dolphins, no foam"
-Pullen Island/ beach side,21/09/2025,9.10am,14.5,33.3,0,0,0,111,167,56,56,0,389,Near surface sample near foam.  No dolpins
-Seal Island,21/09/2025,9.34am,14.3,34.1,0,0,111,56,500,56,56,56,611,"No dolphins, Pavlova foam"
-Wright Island / off beach,21/09/2025,9.58am,14.3,34.2,0,0,0,56,278,56,56,0,111,"Clear water, many dolphins. No foam"
-West Island/ north east,21/09/2025,10.09am,14.3,34.4,0,0,0,167,556,0,0,0,389,"Pavlova foam, but clearish sample.  Off grid copepod and eggs"
-Waitpinga Cliffs/ close,21/09/2025,10.21am,14.2,33.9,0,0,0,56,167,111,0,0,333,"Clear water, no foam, no dolphins ~0.5m  2 ciliate protozoans"
+Location,Latitude,Longitude,Date,CHLOROCOCCALES,COLONIAL & FILAMENTOUS chlorophyceae & charophyceae,FLAGELLATED unicellular chlorophyceae,EUGLENOPHYCEAE & PRASINOPHYCEAE flagellates ,CRYPTOPHYCEAE flagellates,DINOPHYCEAE flagellates,Subcount of Karenia spp,Other golden-brown chromophyte flagellates,BACILLARIOPHYCEAE (diatoms},"Solitary, colonial and filamentous blue greens (> 3-5um)",Picoplankton (<3-5um),"Zooplankton, rotifers, forams, protozoa",TOTAL PLANKTON
+Victor Harbor,-35.55852,138.623,22/03/2025,,,,,,25560,25560,,560,,,,26120
+Ardrossan,-34.42382,137.92412,15/05/2025,,,,37,74,74,0,,37,,333,,556
+Sheaoak Flat, -34.70358,137.87817,15/05/2025,,,,37,185,1481,481,259,185,,1407,,3556
+"Brownlow Beach, Kangaroo Island",-35.67209,137.61358,23/05/2025,,,,,,167,0,,1278,167,2333,,3944
+Ardrossan,-34.42382,137.92412,24/05/2025,,,,83,250,861,222,28,139,,1178,28,3167
+Ardrossan,-34.42382,137.92412,29/05/2025,,,,,194,222,28,56,806,28,417,28,1750
+Ardrossan,-34.42382,137.92412,7/06/2025,,,,194,167,500,83,,1083,,667,,2611
+Sheaoak Flat,-34.70358,137.87817,7/06/2025,,,,,333,1111,0,56,7222,1167,,56,9944
+"West Lakes, southern inlet",-34.89383,138.49006,22/06/2025,,,56,,194,111,28,917,139,,1778,28,3222
+Garden Island Small Boat Club,-34.802859,138.531958,29/06/2025,,,,,,222,0,,250,56,,,556
+Garden Island boat ramp,-34.804799,138.540256,29/06/2025,,,,,28,56,0,,56,,,,140
+"West Lakes, southern inlet",-34.89383,138.49006,3/07/2025,,,,333,1000,389,56,722,111,,4000,28,6583
+"West Lakes, south end Delfin Island",-34.876789,138.488035,3/07/2025,,,56,1389,1111,306,0,611,28,,5333,56,8889
+"West Lakes, near stormwater inlet",-34.877486,138.497854,3/07/2025,,,,778,278,,0,,,,1000,,2056
+"West Lakes, northern end",-34.852471,138.498412,3/07/2025,,,,111,944,333,0,111,,,778,28,2306
+"Onkaparinga, SSLC footbridge",-35.16014,138.47194,3/07/2025,,,,389,111,417,83,167,111,56,167,,1417
+"Onkaparinga, Saltfleet Bridge",-35.15203,138.47328,3/07/2025,,,,28,111,83,0,56,139,,194,,611
+Ardrossan,-34.42382,137.92412,4/07/2025,,,,,278,889,444,167,194,,,28,1556
+"Bald Hill Beach, Port Wakefield",-34.274155,138.187037,11/07/2025,,,,28,28,,0,,528,,,,583
+"Swan Alley, Barker Inlet",-34.791704,138.553224,13/07/2025,,,,333,778,1778,389,1056,6889,111,,222,11167
+St Kilda boat ramp,-34.74426,138.53463,18/07/2025,,,,778,1778,333,111,611,1833,,722,,6056
+Outer Harbor Yacht squadron,-34.773001,138.485403,18/07/2025,,,,59,412,1235,882,353,176,,235,118,2588
+"The Cutting, east end, Barker Inlet/Section Bank",-34.755813,138.516817,18/07/2025,,,,57,257,314,114,143,29,28,,29,857
+"Thompson Beach, 1 km offshore",-34.49417,138.27999,20/07/2025,,,,389,167,1444,1111,222,444,,56,,2722
+"Freshwater Creek (Bolivar outfall, mouth)",-34.70005,138.47494,20/07/2025,2444,,111,222,111,1167,500,772,4333,56,13500,56,22722
+"Freshwater Creek (Bolivar outfall, 500m offshore)",-34.70303,138.46861,20/07/2025,,,111,778,778,3000,1556,2111,1111,,1111,222,9222
+"Hardwicke Bay, Spencer Gulf east",-34.88923,137.44829,25/07/2025,,,,14,,,0,14,125,97,375,,625
+St Kilda Mangrove Trail pool,-34.74574,138.5383,28/07/2025,,,,167,56,778,0,,1000,,,111,2111
+Outer Harbor Yacht squadron,-34.773001,138.485403,28/07/2025,,,,,222,1944,1500,667,3917,,,111,6861
+"Port River, gas pipeline opp Mutton Cover",-34.78115,138.51647,28/07/2025,,,,56,278,1389,556,722,2222,,,56,4722
+"The Cutting (Torrens Island), Port River end",-34.759534,138.510262,28/07/2025,,,,,278,944,444,333,3722,,,167,5444
+"The Cutting, east end, Barker Inlet/Section Bank",-34.755813,138.516817,28/07/2025,,,,,167,1333,833,333,4333,,,167,6333
+"Spencer Gulf, offshore between Cowleds Landing and Murninnie Beach",-33.22442,137.481947,2/08/2025,,,,83,,83,0,111,28,,250,28,583
+"Spencer Gulf, offshore between Cowleds Landing and Murninnie Beach",-33.239247,137.471722,2/08/2025,,,,37,,56,0,19,56,,111,,278
+"Spencer Gulf, offshore between Cowleds Landing and Murninnie Beach",-33.257524,137.469654,2/08/2025,,,,,19,19,0,37,93,,130,,296
+"Spencer Gulf, offshore between Cowleds Landing and Murninnie Beach",-33.260413,137.478715,2/08/2025,,,,,,37,0,56,37,19,56,,204
+"Spencer Gulf, offshore between Cowleds Landing and Murninnie Beach",-33.244989,137.482709,2/08/2025,,,,19,,38,0,57,19,19,75,,226
+"Spencer Gulf, offshore between Cowleds Landing and Murninnie Beach",-33.230874,137.497223,2/08/2025,,,,,19,56,0,37,,19,19,19,167
+"Wauraltee Beach, eastern Spencer Gulf",-34.56726,137.49447,3/08/2025,,,,19,19,19,0,,56,19,167,19,315
+Port Pirie boat ramp,-33.18142,138.01681,4/08/2025,,,,167,722,333,0,250,444,,83,83,2083
+Weeroona Island boat ramp,-33.10308,138.0236,4/08/2025,,,,19,74,19,0,19,167,19,130,19,463
+Germein Bay jetty,-33.02475,137.99793,4/08/2025,,,,93,241,74,0,93,296,,167,19,981
+Whyalla steelworks harbour,-33.01796,137.60166,7/08/2025,,,,42,28,111,0,139,125,14,167,,625
+Parham reef,-34.444301,138.192549,8/08/2025,,,,37,56,315,259,74,148,37,37,19,722
+North Arm,-34.81219,138.53882,8/08/2025,,,,14,,111,42,69,83,125,,14,417
+Christies Beach,-35.13648,138.46857,8/08/2025,,,,130,,278,185,,111,,,,519
+Wills Creek Price boat ramp,-34.28937,138.01243,8/08/2025,,,,333,,6889,6111,111,5111,111,,28,12583
+Parham reef,-34.444301,138.192549,11/08/2025,,,,250,126,2813,2500,375,875,63,188,,4688
+Thompson Beach (2 km offshore southern end),-34.507817,138.274338,11/08/2025,,,,,278,2056,1444,500,3056,,,,5889
+Thompson Beach (1km offshore from Ruskin Road),-34.492911,138.269368,11/08/2025,,,,,167,2222,1611,667,667,,13000,111,17722
+"Eight Mile Creek, Port MacDonald",-38.04683,140.79903,11/08/2025,,,,14,56,56,0,56,306,,,,417
+"Racecourse Bay, Port MacDonald",-38.05989,140.75377,11/08/2025,,,,,1444,389,0,167,2000,778,,,722
+"Racecourse Bay, Port MacDonald",-38.05989,140.75377,11/08/2025,,,,111,1111,56,0,111,2889,611,,,519
+"West Lakes, dirty patch of water southern (inlet) end",-34.89383,138.49006,12/08/2025,,,,,,187222,184000,,167,,,222,187611
+"West Lakes,clear water half a dozen houses north of southern (inlet) end",-34.89132,138.490349,12/08/2025,,,,1778,278,4111,3222,2222,111,56,,111,8667
+Mutton Cove 1,-34.774356,138.509889,14/08/2025,,,,111,389,278,0,167,11333,1167,,333,13778
+Mutton Cove 2,-34.778519,138.509951,14/08/2025,,,,333,167,1833,1556,167,444,56,111,,3111
+Mutton Cove 3,-34.777066,138.509164,14/08/2025,,,,,,1333,278,222,1389,167,111,500,3722
+Mutton Cove 4,-34.778678,138.510752,14/08/2025,,,,,111,3333,2000,,14333,889,,111,18778
+Mutton Cove 5,-34.778416,138.512657,14/08/2025,,,,,28,139,83,139,917,28,28,,1278
+Mutton Cove 6,-34.778755,138.513384,14/08/2025,,,,,,1778,1389,111,1667,167,,556,4278
+Ardrossan,-34.42382,137.92412,16/08/2025,,,,74,111,185,56,185,444,241,37,19,1296
+Wills Creek Price boat ramp,-34.28937,138.01243,16/08/2025,,,,176,59,824,520,235,882,59,,,2235
+Wills Creek Price boat ramp,-34.28937,138.01243,22/08/2025,,,,56,,8111,7778,667,1611,,167,222,10833
+St Kilda boat ramp,-34.74426,138.53463,24/08/2025,,,,444,,3778,2111,667,3000,333,,111,8333
+North Arm at mouth of North Arm Creek,-34.810209,138.54621,24/08/2025,,,,,,2556,1889,7667,1222,556,,222,12222
+"The Cutting (Torrens Island), Port River end",-34.759534,138.510262,24/08/2025,,,,56,,5333,4667,278,111,,,,5778
+Wills Creek Price boat ramp,-34.28937,138.01243,29/08/2025,,,,833,56,5111,4778,333,556,,,556,7444
+"Lake George, SE",-37.44645,139.99202,2/09/2025,,,,,,2889,0,,94000,667,1240000,111,1337667
+St Kilda boat ramp,-34.74426,138.53463,3/09/2025,,,,1722,167,26833,24500,167,556,,,333,29778
+Point Turton Jetty surface,-34.93365,137.35296,5/09/2025,,,111,167,28,56,0,56,19,,28,,463
+Point Turton Jetty deep,-34.93365,137.35296,5/09/2025,,,56,222,56,56,0,111,14,,278,,792
+Wills Creek Price boat ramp,-34.28937,138.01243,6/09/2025,,,,361,,1194,833,417,667,56,,83,2778
+Offshore from Gawler River at Port Gawler 34o40.916  138o25.789,-34.681815,138.429753,9/09/2025,,,,9500,,9500,6500,167,1056,,,167,20389
+"Offshore from Fork Creek (Freshwater Creek, Bolivar Outfall) 34o42.845  138o25.656",-34.714107,138.427032,9/09/2025,,,,333,56,944,556,56,167,,,,1556
+Offshore from Thompson Creek 34o43.988  138o26.685,-34.731737,138.443755,9/09/2025,,,,833,,1444,889,167,111,,,56,2611
+Offshore from Pumping Creek 34o44.018  138o29.341,-34.733525,138.48838,9/09/2025,,,,2222,,38667,30333,,4444,,,111,45444
+"Clinton, -34.237801° 138.012897°",-34.237801,138.012897,12/09/2025,,,,111,,1074,815,630,704,37,,370,2929
+Edithburgh Jetty,-35.0845,137.74933,12/09/2025,,,,833,,944,667,333,667,,,,2778
+"Onkaparinga, Saltfleet Bridge",-35.15203,138.47328,12/09/2025,,,,56,,222,0,222,1000,222,,56,1778
+"Onkaparinga, Saltfleet Bridge",-35.15203,138.47328,12/09/2025,,,,222,,111,0,333,1500,56,,167,2389
+"Walleroo, 150m along the jetty, sampled at 4m depth",-33.92724,137.61906,13/09/2025,,,,647,176,59,0,118,118,,471,,1588
+Wills Creek Price boat ramp,-34.28937,138.01243,13/09/2025,,,,500,,2167,1556,278,889,56,,28,3917
+Port Hughes 34o04.372  138o32.583,-34.07473,137.54074,15/09/2025,,,389,,167,167,0,389,,56,29000,,30167
+"Parham offshore, 34o26.3018  138o13.7935",-34.438363,138.229892,15/09/2025,,,,500,,2722,1556,111,278,56,,,3667
+"Southern Proof Range offshore, 34o24.8267  138o10.600",-34.413778,138.169333,15/09/2025,,,,18,,4444,3333,444,222,4889,,,111
+Wills Creek Price boat ramp,-34.28937,138.01243,19/09/2025,,,56,32500,56,2056,611,222,556,,,,35444
+St Kilda boat ramp,-34.74426,138.53463,21/09/2025,,,,444,111,54000,45000,167,2722,222,,56,57722
+St Kilda Mangrove Trail pool,-34.74574,138.5383,24/09/2025,,,,1556,1444,3111,944,556,1889,56,500,56,9167
+Wills Creek Price boat ramp,-34.28937,138.01243,27/09/2025,,,,778,,2667,667,56,1333,,,19,4952
+Wills Creek Price boat ramp,-34.28937,138.01243,3/10/2025,,,,167,,6667,4500,56,1056,,,889,8833
