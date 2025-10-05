@@ -30,16 +30,19 @@ def load_data(file_path, coords_csv="site_coordinates.csv"):
     return df.merge(coords_df, on="Site_Description", how="left")
 
 @st.cache_data
-def load_community(file_path="community_algae.csv"):
+def load_community(file_path="community_algae.xlsx"):
     if not os.path.exists(file_path):
         st.warning(f"⚠️ Community data file '{file_path}' not found. Using empty dataset.")
         return pd.DataFrame()
     
-    # Read as tab-separated (TSV) with latin-1 encoding to handle potential Unicode issues
-    df = pd.read_csv(file_path, sep='\t', encoding='latin-1')
+    # Read Excel file
+    df = pd.read_excel(file_path, sheet_name=0)
     
     # Trim whitespace from column names to handle any leading/trailing spaces
     df.columns = df.columns.str.strip()
+    
+    # Convert Date column from Excel serial to datetime (Excel epoch starts 1899-12-30)
+    df['Date'] = pd.to_datetime(df['Date'], origin='1899-12-30')
     
     # Identify species columns: everything after 'Date' up to before 'TOTAL PLANKTON'
     date_idx = df.columns.get_loc('Date')
@@ -55,7 +58,7 @@ def load_community(file_path="community_algae.csv"):
     
     # Rename columns to match main data structure
     melted_df['Site_Description'] = melted_df['Location']
-    melted_df['Date_Sample_Collected'] = pd.to_datetime(melted_df['Date'], dayfirst=True)
+    melted_df['Date_Sample_Collected'] = melted_df['Date']
     
     # Drop original Location and Date
     melted_df = melted_df.drop(['Location', 'Date'], axis=1)
@@ -153,7 +156,7 @@ def main():
         font-size: 14px !important;
         color: #666; /* Optional: medium grey for subtlety, or keep #000 for black */
         margin: 0.1rem 0 0;
-        padding-left: 4px; /* Indents text to the right */
+        padding-left: 4px; /* Indents text to right */
     }
     
     /* Horizontal colorbar */
