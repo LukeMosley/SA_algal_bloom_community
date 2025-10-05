@@ -207,7 +207,7 @@ def main():
     """, unsafe_allow_html=True)
 
     # ---------------------------
-    # File paths and data
+    # File paths and data (load always, but filters conditional)
     # ---------------------------
     file_path = "HarmfulAlgalBloom_MonitoringSites_8382667239581124066.csv"
     coords_csv = "site_coordinates.csv"
@@ -244,26 +244,37 @@ def main():
         # Checkbox for including community data (placed here, above Filters)
         include_community = st.checkbox('Include community data')
         
-        # Filters card
-        st.markdown('<div class="sidebar-card">Filters</div>', unsafe_allow_html=True)
-
-        # Species filter (now includes species from both datasets after mapping)
-        combined_df = pd.concat([df, community_df], ignore_index=True)
+        # Conditional combined data, species, and date range (key fix for disappear)
+        if include_community:
+            combined_df = pd.concat([df, community_df], ignore_index=True)
+            if not combined_df.empty:
+                min_date, max_date = combined_df['Date_Sample_Collected'].min(), combined_df['Date_Sample_Collected'].max()
+            else:
+                min_date, max_date = pd.to_datetime('2020-01-01'), pd.to_datetime('2025-12-31')
+        else:
+            combined_df = df.copy()
+            if not df.empty:
+                min_date, max_date = df['Date_Sample_Collected'].min(), df['Date_Sample_Collected'].max()
+            else:
+                min_date, max_date = pd.to_datetime('2020-01-01'), pd.to_datetime('2025-12-31')
+        
         all_species = sorted(combined_df['Result_Name'].dropna().unique())
-        default_species = [s for s in all_species if "Karenia" in s] or all_species[:1]
+        default_species = [s for s in all_species if "Karenia" in s] or all_species[:1] if all_species else []
         species_selected = st.multiselect("Select species  (via dropdown or start typing)", options=all_species, default=default_species)
-        if not species_selected:
+        if not species_selected and all_species:
             species_selected = all_species[:1]
 
         # Date range filter
-        min_date, max_date = combined_df['Date_Sample_Collected'].min(), combined_df['Date_Sample_Collected'].max()
         last_week_start = max_date - timedelta(days=7)
-        date_range = st.date_input("Date range   (year/month/day format)", [last_week_start, max_date],
-                                   min_value=min_date, max_value=max_date)
+        date_range = st.date_input("Date range   (year/month/day format)", [last_week_start.date(), max_date.date()],
+                                   min_value=min_date.date(), max_value=max_date.date())
         if len(date_range) == 2:
             start_date, end_date = pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1])
         else:
             start_date, end_date = min_date, max_date
+
+        # Filters card (moved after for logical flow, but rendered above in sidebar)
+        st.markdown('<div class="sidebar-card">Filters</div>', unsafe_allow_html=True)
 
     # ---------------------------
     # Filter dataset
@@ -284,7 +295,9 @@ def main():
         )
         comm_sub_df = community_df[mask_comm]
 
-    st.sidebar.markdown(f'<div class="records-count">{len(sub_df) + len(comm_sub_df)} of {len(df) + len(community_df)} records for selected species located in this date range</div>', unsafe_allow_html=True)
+    # Conditional total for record count
+    total_records = len(df) + (len(community_df) if include_community else 0)
+    st.sidebar.markdown(f'<div class="records-count">{len(sub_df) + len(comm_sub_df)} of {total_records} records for selected species located in this date range</div>', unsafe_allow_html=True)
 
     # Disclaimer at sidebar bottom
     st.sidebar.markdown(
