@@ -41,8 +41,9 @@ def load_community(file_path="community_algae.xlsx"):
     # Trim whitespace from column names to handle any leading/trailing spaces
     df.columns = df.columns.str.strip()
     
-    # Convert Date column from Excel serial to datetime (Excel epoch starts 1899-12-30)
-    df['Date'] = pd.to_datetime(df['Date'], origin='1899-12-30')
+    # Convert Date column only if it's not already a datetime (handles auto-parsing by pandas)
+    if not pd.api.types.is_datetime64_any_dtype(df['Date']):
+        df['Date'] = pd.to_datetime(df['Date'], origin='1899-12-30')
     
     # Identify species columns: everything after 'Date' up to before 'TOTAL PLANKTON'
     date_idx = df.columns.get_loc('Date')
