@@ -38,6 +38,9 @@ def load_community(file_path="community_algae.csv"):
     # Read as tab-separated (TSV) with latin-1 encoding to handle potential Unicode issues
     df = pd.read_csv(file_path, sep='\t', encoding='latin-1')
     
+    # Trim whitespace from column names to handle any leading/trailing spaces
+    df.columns = df.columns.str.strip()
+    
     # Identify species columns: everything after 'Date' up to before 'TOTAL PLANKTON'
     date_idx = df.columns.get_loc('Date')
     total_idx = df.columns.get_loc('TOTAL PLANKTON')
