@@ -30,21 +30,22 @@ def load_data(file_path, coords_csv="site_coordinates.csv"):
     return df.merge(coords_df, on="Site_Description", how="left")
 
 @st.cache_data
-def load_community(file_path="community_algae.csv", coords_csv="site_coordinates.csv"):
+def load_community(file_path="community_algae.csv"):
     if not os.path.exists(file_path):
         st.warning(f"⚠️ Community data file '{file_path}' not found. Using empty dataset.")
         return pd.DataFrame()
     
-    df = pd.read_csv(file_path)
+    # Read as tab-separated (TSV) due to tab delimiters in the file
+    df = pd.read_csv(file_path, sep='\t')
     
-    # Identify species columns: everything after 'Salinity (ppt)' up to before 'Notes'
-    salinity_idx = df.columns.get_loc('Salinity (ppt)')
-    notes_idx = df.columns.get_loc('Notes')
-    species_cols = df.columns[salinity_idx + 1 : notes_idx].tolist()
+    # Identify species columns: everything after 'Date' up to before 'TOTAL PLANKTON'
+    date_idx = df.columns.get_loc('Date')
+    total_idx = df.columns.get_loc('TOTAL PLANKTON')
+    species_cols = df.columns[date_idx + 1 : total_idx].tolist()
     
     # Melt to long format: one row per species per sample
     melted_df = pd.melt(df, 
-                        id_vars=['Location', 'Date', 'Time', 'Temp', 'Salinity (ppt)', 'Notes'], 
+                        id_vars=['Location', 'Latitude', 'Longitude', 'Date'], 
                         value_vars=species_cols, 
                         var_name='Result_Name', 
                         value_name='Result_Value_Numeric')
@@ -56,31 +57,26 @@ def load_community(file_path="community_algae.csv", coords_csv="site_coordinates
     # Drop original Location and Date
     melted_df = melted_df.drop(['Location', 'Date'], axis=1)
     
-    # Add units if not present
+    # Apply x1000 multiplier (cells/mL to cells/L)
+    melted_df['Result_Value_Numeric'] *= 1000
+    
+    # Add units
     melted_df['Units'] = 'cells/L'
     
     # Optional: Filter to non-zero values to reduce noise (uncomment if desired)
     # melted_df = melted_df[melted_df['Result_Value_Numeric'] > 0]
     
     # Species name mapping: Map community-specific species names to main dataset names
-    # Add mappings here as needed, e.g., {'Karenia sp.': 'Karenia mikimotoi'}
+    # Add mappings here as needed, e.g., {'CHLOROCOCCALES': 'Chlorococcales'}
     species_mapping = {
-        # 'Karenia sp.': 'Karenia mikimotoi',
-        # 'Gymnoids': 'Gymnodinium sp.',
+        # 'CHLOROCOCCALES': 'Chlorococcales',
+        # 'Subcount of Karenia spp': 'Karenia spp',
         # Add your mappings...
     }
     melted_df['Result_Name'] = melted_df['Result_Name'].map(species_mapping).fillna(melted_df['Result_Name'])
     
-    # Merge with coordinates (assumes Site_Description matches or can be cleaned to match coords)
-    # If site names don't match exactly, add a site_mapping dict below and apply similarly
-    if os.path.exists(coords_csv):
-        coords_df = pd.read_csv(coords_csv)
-        melted_df = melted_df.merge(coords_df, on="Site_Description", how="left")
-    else:
-        st.warning(f"⚠️ Coordinates file '{coords_csv}' not found. Community sites will not have lat/long.")
-    
     # Optional: Site name standardization/cleaning
-    # site_mapping = {'Wright Is/ Yilki Bay/reef': 'Wright Island Yilki Bay', ...}
+    # site_mapping = {'Victor Harbor': 'Victor Harbour', ...}
     # melted_df['Site_Description'] = melted_df['Site_Description'].map(site_mapping).fillna(melted_df['Site_Description'])
     
     return melted_df
@@ -237,6 +233,9 @@ def main():
         """,
         unsafe_allow_html=True
         )
+
+        # Checkbox for including community data (placed here, above Filters)
+        include_community = st.checkbox('Include community data')
         
         # Filters card
         st.markdown('<div class="sidebar-card">Filters</div>', unsafe_allow_html=True)
@@ -258,9 +257,6 @@ def main():
             start_date, end_date = pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1])
         else:
             start_date, end_date = min_date, max_date
-
-        # Checkbox for including community data
-        include_community = st.checkbox('Include community data')
 
     # ---------------------------
     # Filter dataset
