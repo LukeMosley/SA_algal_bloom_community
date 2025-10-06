@@ -397,42 +397,36 @@ def main():
         
         # FIXED: Option to include community in trends
         include_comm_in_trends = st.checkbox("Include community data in trends", value=include_community)
-        plot_df = df[
-            (df['Result_Name'].isin(selected_trend_species)) &
-            (df['Result_Value_Numeric'].notna())
-        ].copy()
         
-        if include_comm_in_trends and include_community:
-            comm_plot_df = community_df[
-                (community_df['Result_Name'].isin(selected_trend_species)) &
-                (community_df['Result_Value_Numeric'].notna())
-            ].copy()
-            plot_df = pd.concat([plot_df, comm_plot_df], ignore_index=True)
+        # FIXED: First, build base data for trends (df or combined)
+        if include_comm_in_trends and include_community and not community_df.empty:
+            base_trends_df = pd.concat([df, community_df], ignore_index=True)
+        else:
+            base_trends_df = df.copy()
         
-        # Get all unique species from full dataset (or combined if trends include comm)
-        all_species_trends = sorted(plot_df['Result_Name'].dropna().unique()) if 'comm_plot_df' in locals() else sorted(df['Result_Name'].dropna().unique())
-        
-        # Default to Karenia species (matching sidebar logic)
+        # FIXED: Now get all_species_trends and sites from base (unfiltered)
+        all_species_trends = sorted(base_trends_df['Result_Name'].dropna().unique())
         default_trend_species = [s for s in all_species_trends if "Karenia" in s] or all_species_trends[:3]  # Fallback to first 3 if no Karenia
         
-        # Multi-select for species (defaults to Karenia)
+        # Multi-select for species (defaults to Karenia)—NOW BEFORE FILTERING
         selected_trend_species = st.multiselect(
             "Select species for trend chart",
             options=all_species_trends,
             default=default_trend_species
         )
         
-        # Site filter: All or specific
-        all_sites = sorted(plot_df['Site_Description'].dropna().unique())
+        # Site filter: All or specific—from base
+        all_sites = sorted(base_trends_df['Site_Description'].dropna().unique())
         selected_site = st.selectbox(
             "Filter by site",
             options=["All Sites"] + all_sites,
             index=0
         )
         
-        # Filter data for plot (re-apply species filter)
-        plot_df = plot_df[
-            plot_df['Result_Name'].isin(selected_trend_species)
+        # FIXED: Now filter plot_df using selected_trend_species
+        plot_df = base_trends_df[
+            (base_trends_df['Result_Name'].isin(selected_trend_species)) &
+            (base_trends_df['Result_Value_Numeric'].notna())
         ].copy()
         
         if selected_site != "All Sites":
