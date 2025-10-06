@@ -279,11 +279,10 @@ def main():
         previous_selected = st.session_state.species_selected
         # Filter previous to current options (removes unavailable on toggle off)
         filtered_previous = [s for s in previous_selected if s in all_species]
-        default_species = filtered_previous if filtered_previous else ([s for s in all_species if "Karenia" in s] or all_species[:1] if all_species else [])
+        default_species = filtered_previous if filtered_previous else []  # FIXED: Empty if no previous match, no default
         species_selected = st.multiselect("Select species  (via dropdown or start typing)", options=all_species, default=default_species, key='species_multiselect')
         st.session_state.species_selected = species_selected  # Update state
-        if not species_selected and all_species:
-            species_selected = all_species[:1]
+        # REMOVED: Force to first if empty—allow empty selections now
 
         # FIXED: Persist date range—use previous if available, clamp to new min/max
         previous_date_range = st.session_state.date_range
