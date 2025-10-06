@@ -221,6 +221,15 @@ def main():
             st.session_state.map_bounds = None  # Fallback to default map view
 
     # ---------------------------
+    # PERSISTENT STATE FOR FILTERS (to avoid reset on toggle)
+    # ---------------------------
+    if 'species_selected' not in st.session_state:
+        st.session_state.species_selected = []
+    if 'date_range' not in st.session_state:
+        # Initial default: will be set based on data below
+        st.session_state.date_range = []
+
+    # ---------------------------
     # Sidebar: Title, colorbar, filters
     # ---------------------------
     with st.sidebar:
@@ -250,7 +259,7 @@ def main():
         # Checkbox for including community data (placed here, above Filters)
         include_community = st.checkbox('Include community data')
         
-        # Conditional combined data, species, and date range (key fix for disappear)
+        # Conditional combined data and date range
         if include_community:
             combined_df = pd.concat([df, community_df], ignore_index=True)
             if not combined_df.empty:
@@ -265,15 +274,30 @@ def main():
                 min_date, max_date = pd.to_datetime('2020-01-01'), pd.to_datetime('2025-12-31')
         
         all_species = sorted(combined_df['Result_Name'].dropna().unique())
-        default_species = [s for s in all_species if "Karenia" in s] or all_species[:1] if all_species else []
-        species_selected = st.multiselect("Select species  (via dropdown or start typing)", options=all_species, default=default_species)
+        
+        # FIXED: Persist species selection—filter to available options, default only if empty
+        previous_selected = st.session_state.species_selected
+        # Filter previous to current options (removes unavailable on toggle off)
+        filtered_previous = [s for s in previous_selected if s in all_species]
+        default_species = filtered_previous if filtered_previous else ([s for s in all_species if "Karenia" in s] or all_species[:1] if all_species else [])
+        species_selected = st.multiselect("Select species  (via dropdown or start typing)", options=all_species, default=default_species, key='species_multiselect')
+        st.session_state.species_selected = species_selected  # Update state
         if not species_selected and all_species:
             species_selected = all_species[:1]
 
-        # Date range filter
+        # FIXED: Persist date range—use previous if available, clamp to new min/max
+        previous_date_range = st.session_state.date_range
         last_week_start = max_date - timedelta(days=7)
-        date_range = st.date_input("Date range   (year/month/day format)", [last_week_start.date(), max_date.date()],
-                                   min_value=min_date.date(), max_value=max_date.date())
+        # If previous exists and valid, use it (clamped); else default
+        if previous_date_range and len(previous_date_range) == 2:
+            clamped_start = max(min_date.date(), min(previous_date_range[0].date(), max_date.date()))
+            clamped_end = max(clamped_start, min(max_date.date(), previous_date_range[1].date()))
+            date_range = st.date_input("Date range   (year/month/day format)", [clamped_start, clamped_end],
+                                       min_value=min_date.date(), max_value=max_date.date(), key='date_input')
+        else:
+            date_range = st.date_input("Date range   (year/month/day format)", [last_week_start.date(), max_date.date()],
+                                       min_value=min_date.date(), max_value=max_date.date(), key='date_input')
+        st.session_state.date_range = date_range  # Update state
         if len(date_range) == 2:
             start_date, end_date = pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1])
         else:
