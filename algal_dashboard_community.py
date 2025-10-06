@@ -20,7 +20,7 @@ def load_data(file_path, coords_csv="site_coordinates.csv"):
             df = pd.read_excel(file_path, sheet_name=0)
         else:
             df = pd.read_csv(file_path)
-        df['Date_Sample_Collected'] = pd.to_datetime(df['Date_Sample_Collected'])
+        df['Date_Sample_Collected'] = pd.to_datetime(df['Date_Sample_Collected'], errors='coerce')  # Added error handling
 
     if not os.path.exists(coords_csv):
         st.error(f"⚠️ Coordinates file '{coords_csv}' not found. Please generate site_coordinates.csv first.")
@@ -43,12 +43,12 @@ def load_community(file_path="community_algae.xlsx"):
     
     # Convert Date column only if it's not already a datetime (handles auto-parsing by pandas)
     if not pd.api.types.is_datetime64_any_dtype(df['Date']):
-        df['Date'] = pd.to_datetime(df['Date'], origin='1899-12-30')
+        df['Date'] = pd.to_datetime(df['Date'], origin='1899-12-30', errors='coerce')  # Added error handling
     
-    # Identify species columns: everything after 'Date' up to before 'TOTAL PLANKTON'
+    # Identify species columns: everything after 'Date' up to and INCLUDING 'TOTAL PLANKTON'
     date_idx = df.columns.get_loc('Date')
     total_idx = df.columns.get_loc('TOTAL PLANKTON')
-    species_cols = df.columns[date_idx + 1 : total_idx].tolist()
+    species_cols = df.columns[date_idx + 1 : total_idx + 1].tolist()  # Include 'TOTAL PLANKTON'
     
     # Melt to long format: one row per species per sample
     melted_df = pd.melt(df, 
@@ -73,14 +73,7 @@ def load_community(file_path="community_algae.xlsx"):
     # Optional: Filter to non-zero values to reduce noise (uncomment if desired)
     # melted_df = melted_df[melted_df['Result_Value_Numeric'] > 0]
     
-    # Species name mapping: Map community-specific species names to main dataset names
-    # Add mappings here as needed, e.g., {'CHLOROCOCCALES': 'Chlorococcales'}
-    species_mapping = {
-        # 'CHLOROCOCCALES': 'Chlorococcales',
-        # 'Subcount of Karenia spp': 'Karenia spp',
-        # Add your mappings...
-    }
-    melted_df['Result_Name'] = melted_df['Result_Name'].map(species_mapping).fillna(melted_df['Result_Name'])
+    # No species mapping: keep raw column names as-is for user selection
     
     # Optional: Site name standardization/cleaning
     # site_mapping = {'Victor Harbor': 'Victor Harbour', ...}
@@ -215,6 +208,19 @@ def main():
     community_df = load_community()
 
     # ---------------------------
+    # INITIAL BOUNDS FROM MAIN DATA (for zoom persistence)
+    # ---------------------------
+    if 'map_bounds' not in st.session_state:
+        bounds_df_init = df.dropna(subset=['Latitude', 'Longitude'])
+        if not bounds_df_init.empty:
+            st.session_state.map_bounds = [
+                [bounds_df_init['Latitude'].min(), bounds_df_init['Longitude'].min()],
+                [bounds_df_init['Latitude'].max(), bounds_df_init['Longitude'].max()]
+            ]
+        else:
+            st.session_state.map_bounds = None  # Fallback to default map view
+
+    # ---------------------------
     # Sidebar: Title, colorbar, filters
     # ---------------------------
     with st.sidebar:
@@ -284,7 +290,7 @@ def main():
         df['Date_Sample_Collected'].between(start_date, end_date) &
         df['Result_Value_Numeric'].notna()
     )
-    sub_df = df[mask_main]
+    sub_df = df[mask_main].copy()  # .copy() for safety
 
     comm_sub_df = pd.DataFrame()
     if include_community:
@@ -293,11 +299,11 @@ def main():
             community_df['Date_Sample_Collected'].between(start_date, end_date) &
             community_df['Result_Value_Numeric'].notna()
         )
-        comm_sub_df = community_df[mask_comm]
+        comm_sub_df = community_df[mask_comm].copy()
 
-    # Conditional total for record count
-    total_records = len(df) + (len(community_df) if include_community else 0)
-    st.sidebar.markdown(f'<div class="records-count">{len(sub_df) + len(comm_sub_df)} of {total_records} records for selected species located in this date range</div>', unsafe_allow_html=True)
+    # FIXED: Record count—now "Showing X records matching selected species and date range"
+    filtered_records = len(sub_df) + len(comm_sub_df)
+    st.sidebar.markdown(f'<div class="records-count">Showing {filtered_records} records matching selected species and date range</div>', unsafe_allow_html=True)
 
     # Disclaimer at sidebar bottom
     st.sidebar.markdown(
@@ -337,6 +343,10 @@ def main():
     ).add_to(m)
     folium.LayerControl(position='bottomright').add_to(m)  # Native positioning for layers
 
+    # FIXED: Use session_state bounds (from main data) for consistent zoom on toggle
+    if st.session_state.map_bounds:
+        m.fit_bounds(st.session_state.map_bounds)
+
     # Color scale (Viridis-inspired: purple → green → yellow)
     viridis_colors = ['#641478', '#3b528b', '#21908c', '#5dc863', '#fde725']
     colormap = LinearColormap(colors=viridis_colors, vmin=0, vmax=500000)
@@ -372,11 +382,7 @@ def main():
                        f"{value:,.0f} {units}")
             ).add_to(m)
 
-    # Fit bounds to all plotted data
-    bounds_df = pd.concat([sub_df, comm_sub_df], ignore_index=True)
-    if not bounds_df.empty:
-        m.fit_bounds([[bounds_df['Latitude'].min(), bounds_df['Longitude'].min()],
-                      [bounds_df['Latitude'].max(), bounds_df['Longitude'].max()]])
+    # REMOVED: m.fit_bounds(bounds_df) — now handled by session_state for persistence
 
     # ---------------------------
     # Map display (undocked)
@@ -389,31 +395,44 @@ def main():
     if not df.empty:  # Check full df for options, even if sub_df is filtered
         st.subheader("Trends Over Time")
         
-        # Get all unique species from full dataset
-        all_species = sorted(df['Result_Name'].dropna().unique())
+        # FIXED: Option to include community in trends
+        include_comm_in_trends = st.checkbox("Include community data in trends", value=include_community)
+        plot_df = df[
+            (df['Result_Name'].isin(selected_trend_species)) &
+            (df['Result_Value_Numeric'].notna())
+        ].copy()
+        
+        if include_comm_in_trends and include_community:
+            comm_plot_df = community_df[
+                (community_df['Result_Name'].isin(selected_trend_species)) &
+                (community_df['Result_Value_Numeric'].notna())
+            ].copy()
+            plot_df = pd.concat([plot_df, comm_plot_df], ignore_index=True)
+        
+        # Get all unique species from full dataset (or combined if trends include comm)
+        all_species_trends = sorted(plot_df['Result_Name'].dropna().unique()) if 'comm_plot_df' in locals() else sorted(df['Result_Name'].dropna().unique())
         
         # Default to Karenia species (matching sidebar logic)
-        default_trend_species = [s for s in all_species if "Karenia" in s] or all_species[:3]  # Fallback to first 3 if no Karenia
+        default_trend_species = [s for s in all_species_trends if "Karenia" in s] or all_species_trends[:3]  # Fallback to first 3 if no Karenia
         
         # Multi-select for species (defaults to Karenia)
         selected_trend_species = st.multiselect(
             "Select species for trend chart",
-            options=all_species,
+            options=all_species_trends,
             default=default_trend_species
         )
         
         # Site filter: All or specific
-        all_sites = sorted(df['Site_Description'].dropna().unique())
+        all_sites = sorted(plot_df['Site_Description'].dropna().unique())
         selected_site = st.selectbox(
             "Filter by site",
             options=["All Sites"] + all_sites,
             index=0
         )
         
-        # Filter data for plot
-        plot_df = df[
-            (df['Result_Name'].isin(selected_trend_species)) &
-            (df['Result_Value_Numeric'].notna())
+        # Filter data for plot (re-apply species filter)
+        plot_df = plot_df[
+            plot_df['Result_Name'].isin(selected_trend_species)
         ].copy()
         
         if selected_site != "All Sites":
