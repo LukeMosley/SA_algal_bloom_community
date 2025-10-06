@@ -290,8 +290,8 @@ def main():
         last_week_start = max_date - timedelta(days=7)
         # If previous exists and valid, use it (clamped); else default
         if previous_date_range and len(previous_date_range) == 2:
-            clamped_start = max(min_date.date(), min(previous_date_range[0].date(), max_date.date()))
-            clamped_end = max(clamped_start, min(max_date.date(), previous_date_range[1].date()))
+            clamped_start = max(min_date.date(), min(previous_date_range[0], max_date.date()))
+            clamped_end = max(clamped_start, min(max_date.date(), previous_date_range[1]))
             date_range = st.date_input("Date range   (year/month/day format)", [clamped_start, clamped_end],
                                        min_value=min_date.date(), max_value=max_date.date(), key='date_input')
         else:
