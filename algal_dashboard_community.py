@@ -344,8 +344,11 @@ def main():
     # ---------------------------
     # Map
     # ---------------------------
+    initial_center = st.session_state.map_center
+    if isinstance(initial_center, dict):
+        initial_center = [initial_center.get('lat', 0), initial_center.get('lng', 0)]  # Fallback conversion
     m = folium.Map(
-        location=st.session_state.map_center, 
+        location=initial_center, 
         zoom_start=st.session_state.map_zoom,
         control_scale=True,
         zoom_control='bottomleft'  # Native positioning for zoom buttons
@@ -404,7 +407,7 @@ def main():
     # FIXED: Update session state with current map view (persists manual zoom/pan)
     if map_data and 'zoom' in map_data and 'center' in map_data:
         st.session_state.map_zoom = map_data['zoom']
-        st.session_state.map_center = map_data['center']
+        st.session_state.map_center = [map_data['center']['lat'], map_data['center']['lng']]  # Convert dict to list
 
     # ---------------------------
     # Trends Section
