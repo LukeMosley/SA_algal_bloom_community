@@ -208,17 +208,12 @@ def main():
     community_df = load_community()
 
     # ---------------------------
-    # INITIAL BOUNDS FROM MAIN DATA (for zoom persistence)
+    # PERSISTENT MAP STATE (for zoom/center persistence)
     # ---------------------------
-    if 'map_bounds' not in st.session_state:
-        bounds_df_init = df.dropna(subset=['Latitude', 'Longitude'])
-        if not bounds_df_init.empty:
-            st.session_state.map_bounds = [
-                [bounds_df_init['Latitude'].min(), bounds_df_init['Longitude'].min()],
-                [bounds_df_init['Latitude'].max(), bounds_df_init['Longitude'].max()]
-            ]
-        else:
-            st.session_state.map_bounds = None  # Fallback to default map view
+    if 'map_center' not in st.session_state:
+        st.session_state.map_center = [-34.9, 138.6]  # Initial center
+    if 'map_zoom' not in st.session_state:
+        st.session_state.map_zoom = 6  # Initial zoom
 
     # ---------------------------
     # PERSISTENT STATE FOR FILTERS (to avoid reset on toggle)
@@ -350,8 +345,8 @@ def main():
     # Map
     # ---------------------------
     m = folium.Map(
-        location=[-34.9, 138.6], 
-        zoom_start=6, 
+        location=st.session_state.map_center, 
+        zoom_start=st.session_state.map_zoom,
         control_scale=True,
         zoom_control='bottomleft'  # Native positioning for zoom buttons
     )
@@ -365,10 +360,6 @@ def main():
         attr='Esri', name='Labels', overlay=True, control=True
     ).add_to(m)
     folium.LayerControl(position='bottomright').add_to(m)  # Native positioning for layers
-
-    # FIXED: Use session_state bounds (from main data) for consistent zoom on toggle
-    if st.session_state.map_bounds:
-        m.fit_bounds(st.session_state.map_bounds)
 
     # Color scale (Viridis-inspired: purple → green → yellow)
     viridis_colors = ['#641478', '#3b528b', '#21908c', '#5dc863', '#fde725']
@@ -405,12 +396,15 @@ def main():
                        f"{value:,.0f} {units}")
             ).add_to(m)
 
-    # REMOVED: m.fit_bounds(bounds_df) — now handled by session_state for persistence
-
     # ---------------------------
-    # Map display (undocked)
+    # Map display (undocked) with persistence update
     # ---------------------------
-    st_folium(m, width='100%', height=550)
+    map_data = st_folium(m, width='100%', height=550, returned_objects=['zoom', 'center'])
+    
+    # FIXED: Update session state with current map view (persists manual zoom/pan)
+    if map_data and 'zoom' in map_data and 'center' in map_data:
+        st.session_state.map_zoom = map_data['zoom']
+        st.session_state.map_center = map_data['center']
 
     # ---------------------------
     # Trends Section
