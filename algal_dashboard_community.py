@@ -354,7 +354,7 @@ def main():
     st.sidebar.markdown(
         """
         <div style="font-size:11px; color:#666; margin-top:10px; margin-bottom:20px; padding:4px; border-top:1px solid #ddd;">
-        Disclaimer: This application is a research product that utilises publicly available 
+        <p>Disclaimer: This application is a research product that utilises publicly available 
         <a href="https://experience.arcgis.com/experience/5f0d6b22301a47bf91d198cabb030670" target="_blank">
         data</a> from the South Australian Government No liability is accepted 
         by the creator (A/Prof. Luke Mosley) or Adelaide University for the use 
@@ -362,9 +362,8 @@ def main():
         or out of date. Users should consult the official South Australian Government 
         advice (see <a href="https://www.algalbloom.sa.gov.au/" target="_blank">
         https://www.algalbloom.sa.gov.au/</a>) and/or obtain independent advice before 
-        relying on information in this application.
-
-        The many community volunteers who contributed samples and undertook analyses for this application are kindly thanked, in particular: Peri Coleman, Samantha Sea, Faith Coleman.
+        relying on information in this application.</p>
+        <p style="margin-top: 10px;">The many community volunteers who contributed samples and undertook analyses for this application are kindly thanked, in particular: Peri Coleman, Samantha Sea, Faith Coleman.</p>
         </div>
         """,
         unsafe_allow_html=True
