@@ -137,6 +137,11 @@ def main():
         font-style: italic; /* Optional: subtle italic tilt */
         text-decoration: underline; /* Adds underline */
     }
+
+    /* Add margin-top to push the checkbox down closer to the species select */
+    section[data-testid="stSidebar"] [data-testid="stCheckbox"] {
+        margin-top: 15px !important; /* Adjust this value (e.g., 10px-20px) for desired spacing */
+    }
     
     /* Sidebar section filter header labels */
     section[data-testid="stSidebar"] label {
