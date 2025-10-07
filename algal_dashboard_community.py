@@ -22,6 +22,17 @@ def load_data(file_path, coords_csv="site_coordinates.csv"):
             df = pd.read_csv(file_path)
         df['Date_Sample_Collected'] = pd.to_datetime(df['Date_Sample_Collected'], errors='coerce')  # Added error handling
 
+        # Normalize Result_Name for consistent uniqueness due to issues in govt data consistency of naming
+        if 'Result_Name' in df.columns:
+            df['Result_Name'] = (
+                df['Result_Name']
+                .astype(str)  # Ensure string type
+                .str.strip()  # Remove leading/trailing whitespace
+                .str.replace(r'\s+', ' ', regex=True)  # Collapse multiple spaces
+                .str.replace('\xa0', ' ', regex=False)  # Replace non-breaking spaces (U+00A0)
+                # Add more replacements if needed, e.g., .str.replace('.', '') for punctuation testing
+            )
+    
     if not os.path.exists(coords_csv):
         st.error(f"⚠️ Coordinates file '{coords_csv}' not found. Please generate site_coordinates.csv first.")
         st.stop()
@@ -45,10 +56,10 @@ def load_community(file_path="community_algae.xlsx"):
     if not pd.api.types.is_datetime64_any_dtype(df['Date']):
         df['Date'] = pd.to_datetime(df['Date'], origin='1899-12-30', errors='coerce')  # Added error handling
     
-    # Identify species columns: everything after 'Date' up to and INCLUDING 'TOTAL PLANKTON'
+    # Identify species columns: everything after 'Date' up to and INCLUDING 'Total Plankton'
     date_idx = df.columns.get_loc('Date')
-    total_idx = df.columns.get_loc('TOTAL PLANKTON')
-    species_cols = df.columns[date_idx + 1 : total_idx + 1].tolist()  # Include 'TOTAL PLANKTON'
+    total_idx = df.columns.get_loc('Total plankton')
+    species_cols = df.columns[date_idx + 1 : total_idx + 1].tolist()  # Include 'Total plankton'
     
     # Melt to long format: one row per species per sample
     melted_df = pd.melt(df, 
