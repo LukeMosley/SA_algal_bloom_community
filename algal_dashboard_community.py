@@ -282,6 +282,9 @@ def main():
         # Checkbox for including community data (placed here, above Filters)
         include_community = st.checkbox('Include community data')
         
+        # Filters card (moved up to appear above Select species)
+        st.markdown('<div class="sidebar-card">Filters</div>', unsafe_allow_html=True)
+        
         # Conditional combined data and date range
         if include_community:
             combined_df = pd.concat([df, community_df], ignore_index=True)
@@ -333,9 +336,6 @@ def main():
             start_date, end_date = pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1])
         else:
             start_date, end_date = min_date, max_date
-
-        # Filters card (moved after for logical flow, but rendered above in sidebar)
-        st.markdown('<div class="sidebar-card">Filters</div>', unsafe_allow_html=True)
 
     # ---------------------------
     # Filter dataset
