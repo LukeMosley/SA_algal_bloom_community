@@ -292,8 +292,17 @@ def main():
         previous_selected = st.session_state.species_selected
         # Filter previous to current options (removes unavailable on toggle off)
         filtered_previous = [s for s in previous_selected if s in all_species]
+        
+        # NEW: When community is included, ensure "Karenia spp subcount *" is in defaults if available
         karenia_defaults = [s for s in all_species if "Karenia" in s]
-        default_species = filtered_previous if filtered_previous else karenia_defaults  # Default to Karenia if empty
+        if include_community and "Karenia spp subcount *" in all_species:
+            if "Karenia spp subcount *" not in filtered_previous:
+                if filtered_previous:
+                    filtered_previous.append("Karenia spp subcount *")
+                else:
+                    filtered_previous = ["Karenia spp subcount *"]
+        
+        default_species = filtered_previous if filtered_previous else karenia_defaults
         species_selected = st.multiselect("Select species  (via dropdown or start typing, *denotes community data)", options=all_species, default=default_species, key='species_multiselect')
         st.session_state.species_selected = species_selected  # Update state
 
@@ -355,7 +364,7 @@ def main():
         https://www.algalbloom.sa.gov.au/</a>) and/or obtain independent advice before 
         relying on information in this application.
 
-        The following individuals are acknowledged for contribution of community algae data - Peri Coleman, Faith Coleman, Samantha Sea.
+        The many community volunteers who contributed samples and undertook analyses for this application are kindly thanked, in particular: Peri Coleman, Samantha Sea, Faith Coleman.
         </div>
         """,
         unsafe_allow_html=True
