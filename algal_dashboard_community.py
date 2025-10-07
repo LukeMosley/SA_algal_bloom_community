@@ -243,9 +243,9 @@ def main():
     if 'map_zoom' not in st.session_state:
         st.session_state.map_zoom = 6  # Initial zoom
 
-    # NEW: Track previous data hash for conditional fit_bounds
-    if 'prev_data_hash' not in st.session_state:
-        st.session_state.prev_data_hash = None
+    # NEW: Flag for initial fit only
+    if 'map_initialized' not in st.session_state:
+        st.session_state.map_initialized = False
 
     # ---------------------------
     # PERSISTENT STATE FOR FILTERS (to avoid reset on toggle)
@@ -441,16 +441,12 @@ def main():
                        f"{value:,.0f} {units}")
             ).add_to(m)
 
-    # FIXED: Conditional fit_bounds only when filtered data changes (retains user zoom/pan otherwise)
+    # FIXED: Initial fit_bounds only (on first load); user controls view thereafter
     combined_sub = pd.concat([sub_df, comm_sub_df], ignore_index=True)
-    if not combined_sub.empty:
-        # Compute hash of filtered data (sites + count)
-        sites = sorted(combined_sub['Site_Description'].unique())
-        current_hash = hash((tuple(sites), len(combined_sub)))
-        if st.session_state.prev_data_hash != current_hash:
-            m.fit_bounds([[combined_sub['Latitude'].min(), combined_sub['Longitude'].min()],
-                          [combined_sub['Latitude'].max(), combined_sub['Longitude'].max()]])
-            st.session_state.prev_data_hash = current_hash
+    if not combined_sub.empty and not st.session_state.map_initialized:
+        m.fit_bounds([[combined_sub['Latitude'].min(), combined_sub['Longitude'].min()],
+                      [combined_sub['Latitude'].max(), combined_sub['Longitude'].max()]])
+        st.session_state.map_initialized = True
 
     # ---------------------------
     # Map display (undocked) with persistence update
