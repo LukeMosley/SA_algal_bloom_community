@@ -52,11 +52,17 @@ def load_community(file_path="community_algae.xlsx"):
     # Trim whitespace from column names to handle any leading/trailing spaces
     df.columns = df.columns.str.strip()
     
+    # FIXED: Rename Lat/Long to match expected column names for consistency
+    if 'Lat' in df.columns:
+        df = df.rename(columns={'Lat': 'Latitude'})
+    if 'Long' in df.columns:
+        df = df.rename(columns={'Long': 'Longitude'})
+    
     # Convert Date column only if it's not already a datetime (handles auto-parsing by pandas)
     if not pd.api.types.is_datetime64_any_dtype(df['Date']):
         df['Date'] = pd.to_datetime(df['Date'], origin='1899-12-30', errors='coerce')  # Added error handling
     
-    # Identify species columns: everything after 'Date' up to and INCLUDING 'Total Plankton'
+    # Identify species columns: everything after 'Date' up to and INCLUDING 'Total plankton'
     date_idx = df.columns.get_loc('Date')
     total_idx = df.columns.get_loc('Total plankton')
     species_cols = df.columns[date_idx + 1 : total_idx + 1].tolist()  # Include 'Total plankton'
@@ -81,10 +87,11 @@ def load_community(file_path="community_algae.xlsx"):
     # Add units
     melted_df['Units'] = 'cells/L'
     
+    # FIXED: Append '*' to Result_Name to denote community data (e.g., "Karenia spp subcount *")
+    melted_df['Result_Name'] = melted_df['Result_Name'].astype(str) + ' *'
+    
     # Optional: Filter to non-zero values to reduce noise (uncomment if desired)
     # melted_df = melted_df[melted_df['Result_Value_Numeric'] > 0]
-    
-    # No species mapping: keep raw column names as-is for user selection
     
     # Optional: Site name standardization/cleaning
     # site_mapping = {'Victor Harbor': 'Victor Harbour', ...}
@@ -281,14 +288,14 @@ def main():
         
         all_species = sorted(combined_df['Result_Name'].dropna().unique())
         
-        # FIXED: Persist species selection—filter to available options, default only if empty
+        # FIXED: Persist species selection—default to Karenia if no valid previous (instead of empty)
         previous_selected = st.session_state.species_selected
         # Filter previous to current options (removes unavailable on toggle off)
         filtered_previous = [s for s in previous_selected if s in all_species]
-        default_species = filtered_previous if filtered_previous else []  # FIXED: Empty if no previous match, no default
-        species_selected = st.multiselect("Select species  (via dropdown or start typing)", options=all_species, default=default_species, key='species_multiselect')
+        karenia_defaults = [s for s in all_species if "Karenia" in s]
+        default_species = filtered_previous if filtered_previous else karenia_defaults  # Default to Karenia if empty
+        species_selected = st.multiselect("Select species  (via dropdown or start typing, *denotes community data)", options=all_species, default=default_species, key='species_multiselect')
         st.session_state.species_selected = species_selected  # Update state
-        # REMOVED: Force to first if empty—allow empty selections now
 
         # FIXED: Persist date range—use previous if available, clamp to new min/max
         previous_date_range = st.session_state.date_range
@@ -347,6 +354,8 @@ def main():
         advice (see <a href="https://www.algalbloom.sa.gov.au/" target="_blank">
         https://www.algalbloom.sa.gov.au/</a>) and/or obtain independent advice before 
         relying on information in this application.
+
+        The following individuals are acknowledged for contribution of community algae data - Peri Coleman, Faith Coleman, Samantha Sea.
         </div>
         """,
         unsafe_allow_html=True
@@ -409,6 +418,12 @@ def main():
                        f"{row['Result_Name']}<br>"
                        f"{value:,.0f} {units}")
             ).add_to(m)
+
+    # FIXED: Fit bounds to combined filtered data (main + community) if any data
+    combined_sub = pd.concat([sub_df, comm_sub_df], ignore_index=True)
+    if not combined_sub.empty:
+        m.fit_bounds([[combined_sub['Latitude'].min(), combined_sub['Longitude'].min()],
+                      [combined_sub['Latitude'].max(), combined_sub['Longitude'].max()]])
 
     # ---------------------------
     # Map display (undocked) with persistence update
