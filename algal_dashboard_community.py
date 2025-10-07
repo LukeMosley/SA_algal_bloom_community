@@ -236,18 +236,6 @@ def main():
     community_df = load_community()
 
     # ---------------------------
-    # PERSISTENT MAP STATE (for zoom/center persistence)
-    # ---------------------------
-    if 'map_center' not in st.session_state:
-        st.session_state.map_center = [-34.9, 138.6]  # Initial center
-    if 'map_zoom' not in st.session_state:
-        st.session_state.map_zoom = 6  # Initial zoom
-
-    # NEW: Flag for initial fit only
-    if 'map_initialized' not in st.session_state:
-        st.session_state.map_initialized = False
-
-    # ---------------------------
     # PERSISTENT STATE FOR FILTERS (to avoid reset on toggle)
     # ---------------------------
     if 'species_selected' not in st.session_state:
@@ -386,12 +374,9 @@ def main():
     # ---------------------------
     # Map
     # ---------------------------
-    initial_center = st.session_state.map_center
-    if isinstance(initial_center, dict):
-        initial_center = [initial_center.get('lat', 0), initial_center.get('lng', 0)]  # Fallback conversion
     m = folium.Map(
-        location=initial_center, 
-        zoom_start=st.session_state.map_zoom,
+        location=[-34.9, 138.6], 
+        zoom_start=6, 
         control_scale=True,
         zoom_control='bottomleft'  # Native positioning for zoom buttons
     )
@@ -441,22 +426,16 @@ def main():
                        f"{value:,.0f} {units}")
             ).add_to(m)
 
-    # FIXED: Initial fit_bounds only (on first load); user controls view thereafter
+    # Always fit bounds if data (like old code)
     combined_sub = pd.concat([sub_df, comm_sub_df], ignore_index=True)
-    if not combined_sub.empty and not st.session_state.map_initialized:
+    if not combined_sub.empty:
         m.fit_bounds([[combined_sub['Latitude'].min(), combined_sub['Longitude'].min()],
                       [combined_sub['Latitude'].max(), combined_sub['Longitude'].max()]])
-        st.session_state.map_initialized = True
 
     # ---------------------------
-    # Map display (undocked) with persistence update
+    # Map display (undocked)
     # ---------------------------
-    map_data = st_folium(m, width='100%', height=550, returned_objects=['zoom', 'center'])
-    
-    # FIXED: Update session state with current map view (persists manual zoom/pan)
-    if map_data and 'zoom' in map_data and 'center' in map_data:
-        st.session_state.map_zoom = map_data['zoom']
-        st.session_state.map_center = [map_data['center']['lat'], map_data['center']['lng']]  # Convert dict to list
+    st_folium(m, width='100%', height=550)
 
     # ---------------------------
     # Trends Section
