@@ -140,7 +140,12 @@ def main():
 
     /* Add margin-top to push the checkbox down closer to the species select */
     section[data-testid="stSidebar"] [data-testid="stCheckbox"] {
-        margin-top: 15px !important; /* Adjust this value (e.g., 10px-20px) for desired spacing */
+        margin-top: 10px !important; /* Adjust this value (e.g., 10px-20px) for desired spacing */
+    }
+
+    /* Reduce space before the species multiselect (pull it up closer to checkbox) */
+    section[data-testid="stSidebar"] [data-testid="stMultiSelect"] {
+        margin-top: -8px !important; /* Negative value pulls it up; adjust -5px to -12px as needed */
     }
     
     /* Sidebar section filter header labels */
