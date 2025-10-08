@@ -270,7 +270,7 @@ def main():
         <div class="colorbar-wrapper">
             <div class="colorbar-container"></div>  <!-- Just the gradient, no labels inside -->
             <div class="colorbar-labels">
-                <span>0</span><span>100k</span><span>200k</span><span>300k</span><span>400k</span><span>>500k</span>
+                <span>0</span><span>100,000</span><span>200,000</span><span>300,000</span><span>400,000</span><span>>500,000</span>
             </div>
         </div>
         <div class="colorbar-units">Cell count per L</div>
