@@ -195,33 +195,34 @@ def main():
         justify-content: center;
         margin-bottom: 2px;
     }
+
     .colorbar-container {
         background: linear-gradient(to right, #641478 0%, #3b528b 25%, #21908c 50%, #5dc863 75%, #fde725 100%);
-        height: 30px;
+        height: 20px;  /* Reduced height since labels are now below */
         border: 1px solid #ccc;
         border-radius: 4px;
-        padding: 0 5px;
-        font-size: 12px;
-        color: #333333; /* dark grey text */
-        font-weight: normal;
+        padding: 0;  /* No padding needed now */
         max-width: 95%;
         width: 100%;
     }
+    
     .colorbar-labels {
         display: flex;
         justify-content: space-between;
         width: 100%;
-        font-size: 11px;
-        margin-top: 2px;
-        color: #333333; /* dark grey instead of white */
+        font-size: 10px;  /* Smaller font to reduce cramping */
+        margin-top: 2px;  /* Small gap above labels */
+        color: #333333;
     }
+    
     .colorbar-labels span {
         flex: 1;
         text-align: center;
-        color: #000; /* Keep black base */
+        color: #000;
         font-weight: bold;
-        text-shadow: 0 0 2px rgba(255, 255, 255, 1); /* Thicker, fully opaque white halo */
+        /* Removed text-shadow as it's less needed below the bar */
     }
+    
     .colorbar-units {
         font-size: 12px;
         color: #000;
@@ -266,11 +267,10 @@ def main():
         st.markdown(
         """
         <div class="colorbar-wrapper">
-            <div class="colorbar-container">
-                <div class="colorbar-labels">
-                    <span>0</span><span>100,000</span><span>200,000</span>
-                    <span>300,000</span><span>400,000</span><span>>500,000</span>
-                </div>
+            <div class="colorbar-container"></div>  <!-- Just the gradient, no labels inside -->
+            <div class="colorbar-labels">
+                <span>0</span><span>100,000</span><span>200,000</span>
+                <span>300,000</span><span>400,000</span><span>>500,000</span> 
             </div>
         </div>
         <div class="colorbar-units">Cell count per L</div>
