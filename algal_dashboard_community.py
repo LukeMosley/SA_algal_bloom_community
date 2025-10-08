@@ -211,7 +211,7 @@ def main():
         display: flex;
         justify-content: space-between;
         width: 100%;
-        font-size: 10px;  /* Smaller font to reduce cramping */
+        font-size: 12px;  /* Smaller font to reduce cramping */
         margin-top: 4px;  /* Increased gap above labels */
         color: #333333;
     }
