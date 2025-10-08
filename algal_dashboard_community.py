@@ -320,7 +320,7 @@ def main():
 
         # FIXED: Persist date range—use previous if available, clamp to new min/max
         previous_date_range = st.session_state.date_range
-        last_week_start = max_date - timedelta(days=7)
+        last_week_start = max_date - timedelta(days=14)
         # If previous exists and valid, use it (clamped); else default
         if previous_date_range and len(previous_date_range) == 2:
             clamped_start = max(min_date.date(), min(previous_date_range[0], max_date.date()))
