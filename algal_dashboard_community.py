@@ -522,7 +522,7 @@ def main():
                 width=800,
                 height=400,
                 title=alt.TitleParams(
-                    text="Trends for Selected Species (note: average values will be displayed if 'All Sites' selected)",
+                    text="Trends for selected species (note: average values will be displayed if 'All Sites' selected, *denotes community data)",
                     fontSize=14,
                     fontWeight='normal',
                     color='#4c4c4c'  # dark grey
