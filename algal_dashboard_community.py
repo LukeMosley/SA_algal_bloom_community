@@ -513,7 +513,7 @@ def main():
             # No .dt.date here—keep as datetime for Altair
             
             # Altair chart (linear scale only)
-            base = alt.Chart(trend_melted).mark_line().encode(
+            base = alt.Chart(trend_melted).mark_line(point=True).encode(
                 x=alt.X('Date_Sample_Collected:T', title='Date', axis=alt.Axis(labelAngle=0)),
                 y=alt.Y('Cell_Count:Q', title='Cell Count per L'),
                 color=alt.Color('Species:N', title='Species'),
