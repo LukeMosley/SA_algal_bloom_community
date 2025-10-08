@@ -38,7 +38,10 @@ def load_data(file_path, coords_csv="site_coordinates.csv"):
         st.stop()
 
     coords_df = pd.read_csv(coords_csv)
-    return df.merge(coords_df, on="Site_Description", how="left")
+    df = df.merge(coords_df, on="Site_Description", how="left")
+    df['Latitude'] = pd.to_numeric(df['Latitude'], errors='coerce')
+    df['Longitude'] = pd.to_numeric(df['Longitude'], errors='coerce')
+    return df
 
 @st.cache_data
 def load_community(file_path="community_algae.xlsx"):
@@ -89,6 +92,10 @@ def load_community(file_path="community_algae.xlsx"):
     
     # FIXED: Append '*' to Result_Name to denote community data (e.g., "Karenia spp subcount *")
     melted_df['Result_Name'] = melted_df['Result_Name'].astype(str) + ' *'
+    
+    # Convert Latitude and Longitude to numeric
+    melted_df['Latitude'] = pd.to_numeric(melted_df['Latitude'], errors='coerce')
+    melted_df['Longitude'] = pd.to_numeric(melted_df['Longitude'], errors='coerce')
     
     # Optional: Filter to non-zero values to reduce noise (uncomment if desired)
     # melted_df = melted_df[melted_df['Result_Value_Numeric'] > 0]
@@ -429,8 +436,12 @@ def main():
     # Always fit bounds if data (like old code)
     combined_sub = pd.concat([sub_df, comm_sub_df], ignore_index=True)
     if not combined_sub.empty:
-        m.fit_bounds([[combined_sub['Latitude'].min(), combined_sub['Longitude'].min()],
-                      [combined_sub['Latitude'].max(), combined_sub['Longitude'].max()]])
+        lat_min = combined_sub['Latitude'].min()
+        lon_min = combined_sub['Longitude'].min()
+        lat_max = combined_sub['Latitude'].max()
+        lon_max = combined_sub['Longitude'].max()
+        if pd.notna(lat_min) and pd.notna(lon_min) and pd.notna(lat_max) and pd.notna(lon_max):
+            m.fit_bounds([[lat_min, lon_min], [lat_max, lon_max]])
 
     # ---------------------------
     # Map display (undocked)
