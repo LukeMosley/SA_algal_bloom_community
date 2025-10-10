@@ -213,20 +213,20 @@ def main():
         width: 100%;
         font-size: 11px;  /* Smaller font to reduce cramping */
         margin-top: 4px;  /* Increased gap above labels */
-        color: #D3D3D3;
+        color: #666;
     }
     
     .colorbar-labels span {
         flex: 1;
         text-align: center;
-        color: #000;
+        color: #666;
         font-weight: bold;
         /* Removed text-shadow as it's less needed below the bar */
     }
     
     .colorbar-units {
         font-size: 12px;
-        color: #D3D3D3;
+        color: #666;
         font-weight: bold;
         margin-top: 4px;
         margin-bottom: 4px; /* Added to match doubled top */
