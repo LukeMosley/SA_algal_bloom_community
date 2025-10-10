@@ -226,7 +226,7 @@ def main():
     
     .colorbar-units {
         font-size: 12px;
-        color: #000;
+        color: #3D3D3D;
         font-weight: bold;
         margin-top: 4px;
         margin-bottom: 4px; /* Added to match doubled top */
