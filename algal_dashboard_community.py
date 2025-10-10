@@ -70,20 +70,6 @@ def load_community(file_path="MASTER spreadsheet of community summaries.xlsx"):
     total_idx = df.columns.get_loc('Total plankton')
     species_cols = df.columns[date_idx + 1 : total_idx + 1].tolist()  # Include 'Total plankton'
     
-    # Normalize species column names before melting to handle any whitespace issues
-    normalized_species_cols = {}
-    for col in species_cols:
-        normalized = (
-            str(col)  # Ensure string type
-            .strip()  # Remove leading/trailing whitespace
-            .replace(r'\s+', ' ', regex=True)  # Collapse multiple spaces
-            .replace('\xa0', ' ', regex=False)  # Replace non-breaking spaces (U+00A0)
-        )
-        normalized_species_cols[col] = normalized
-    
-    df = df.rename(columns=normalized_species_cols)
-    species_cols = [normalized_species_cols.get(col, col) for col in species_cols]  # Update species_cols with normalized names
-    
     # Melt to long format: one row per species per sample
     melted_df = pd.melt(df, 
                         id_vars=['Location', 'Latitude', 'Longitude', 'Date'], 
