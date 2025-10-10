@@ -213,7 +213,7 @@ def main():
         width: 100%;
         font-size: 11px;  /* Smaller font to reduce cramping */
         margin-top: 4px;  /* Increased gap above labels */
-        color: #333333;
+        color: #D3D3D3;
     }
     
     .colorbar-labels span {
@@ -226,7 +226,7 @@ def main():
     
     .colorbar-units {
         font-size: 12px;
-        color: #3D3D3D;
+        color: #D3D3D3;
         font-weight: bold;
         margin-top: 4px;
         margin-bottom: 4px; /* Added to match doubled top */
