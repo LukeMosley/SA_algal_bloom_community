@@ -44,7 +44,7 @@ def load_data(file_path, coords_csv="site_coordinates.csv"):
     return df
 
 @st.cache_data
-def load_community(file_path="community_algae.xlsx"):
+def load_community(file_path="MASTER spreadsheet of community summaries.xlsx"):
     if not os.path.exists(file_path):
         st.warning(f"⚠️ Community data file '{file_path}' not found. Using empty dataset.")
         return pd.DataFrame()
