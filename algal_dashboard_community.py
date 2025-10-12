@@ -440,7 +440,7 @@ def main():
         """
         folium.Marker(
             location=[cam['lat'], cam['lon']],
-            icon=folium.Icon(icon='camera', prefix='fa', color='blue', icon_size=(20, 20)),  # Added icon_size for smaller icon; adjust as needed
+            icon=folium.Icon(icon='camera', prefix='fa', color='blue', icon_size=(10, 10)),  # Added icon_size for smaller icon; adjust as needed
             popup=folium.Popup(popup_html, max_width=300)
         ).add_to(m)
     # Always fit bounds if data (like old code)
