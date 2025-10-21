@@ -7,8 +7,8 @@ import altair as alt
 import os
 from datetime import timedelta
 import base64
-from PIL import Image  # Add this for image processing
-from io import BytesIO  # Add this for in-memory buffering
+from PIL import Image
+from io import BytesIO
 
 # ---------------------------
 # Load data + coordinates
@@ -311,7 +311,6 @@ def main():
     folium.LayerControl(position='bottomright').add_to(m)
    
     # Add satellite raster if checkbox is selected
-    image_data_url = None
     if include_raster and os.path.exists(raster_file):
         try:
             # Load image and make white background transparent
@@ -340,9 +339,13 @@ def main():
                 control=True
             ).add_to(m)
             
-            # Debug: Display the processed image in Streamlit to confirm loading
-            buffered.seek(0)  # Reset buffer position
-            st.image(buffered, caption="Debug: Processed Raster Image (with transparency)", use_column_width=False)
+            # Add a red rectangle to debug the bounds
+            folium.Rectangle(
+                bounds=[[-36, 134], [-32, 140]],
+                color="red",
+                fill=False,
+                weight=3
+            ).add_to(m)
         except Exception as e:
             st.error(f"Error loading or processing raster image: {e}")
    
