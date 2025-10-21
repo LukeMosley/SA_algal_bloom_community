@@ -311,6 +311,7 @@ def main():
     folium.LayerControl(position='bottomright').add_to(m)
    
     # Add satellite raster if checkbox is selected
+    image_data_url = None
     if include_raster and os.path.exists(raster_file):
         try:
             # Load image and make white background transparent
@@ -374,14 +375,32 @@ def main():
                        f"{value:,.0f} {units}")
             ).add_to(m)
     combined_sub = pd.concat([sub_df, comm_sub_df], ignore_index=True)
+    # Calculate bounds
+    lat_min, lon_min, lat_max, lon_max = None, None, None, None
+    if include_raster:
+        lat_min = -36
+        lon_min = 134
+        lat_max = -32
+        lon_max = 140
     if not combined_sub.empty:
-        lat_min = combined_sub['Latitude'].min()
-        lon_min = combined_sub['Longitude'].min()
-        lat_max = combined_sub['Latitude'].max()
-        lon_max = combined_sub['Longitude'].max()
-        if pd.notna(lat_min) and pd.notna(lon_min) and pd.notna(lat_max) and pd.notna(lon_max):
-            m.fit_bounds([[lat_min, lon_min], [lat_max, lon_max]])
-    st_folium(m, width='100%', height=550)
+        p_lat_min = combined_sub['Latitude'].min()
+        p_lon_min = combined_sub['Longitude'].min()
+        p_lat_max = combined_sub['Latitude'].max()
+        p_lon_max = combined_sub['Longitude'].max()
+        if pd.notna(p_lat_min):
+            if lat_min is None:
+                lat_min = p_lat_min
+                lon_min = p_lon_min
+                lat_max = p_lat_max
+                lon_max = p_lon_max
+            else:
+                lat_min = min(lat_min, p_lat_min)
+                lon_min = min(lon_min, p_lon_min)
+                lat_max = max(lat_max, p_lat_max)
+                lon_max = max(lon_max, p_lon_max)
+    if lat_min is not None and pd.notna(lat_min) and pd.notna(lon_min) and pd.notna(lat_max) and pd.notna(lon_max):
+        m.fit_bounds([[lat_min, lon_min], [lat_max, lon_max]])
+    st_folium(m, width='100%', height=550, key=f"map_{include_raster}")
     # Trends Section
     if not df.empty:
         st.subheader("Trends Over Time")
