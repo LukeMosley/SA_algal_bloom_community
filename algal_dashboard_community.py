@@ -175,7 +175,7 @@ def main():
     # File paths and data
     file_path = "HarmfulAlgalBloom_MonitoringSites_8382667239581124066.csv"
     coords_csv = "site_coordinates.csv"
-    raster_file = "pace_rrs_at_470.0_nm_2025.png"
+    raster_file = "pace_rrs_at_470.0_nm.png"
     df = load_data(file_path, coords_csv)
     community_df = load_community()
 
@@ -205,7 +205,7 @@ def main():
             unsafe_allow_html=True
         )
         include_community = st.checkbox('Include community data')
-        include_raster = st.checkbox('Show satellite Rrs at 470nm (2025-10-17)')
+        include_raster = st.checkbox('Show satellite remote reflectance sensing data at 470nm')
 
         st.markdown('<div class="sidebar-card">Filters</div>', unsafe_allow_html=True)
 
@@ -318,7 +318,7 @@ def main():
             image=raster_file,
             bounds=[[-36, 134], [-32, 140]],  # [lat_min, lon_min], [lat_max, lon_max]
             opacity=0.6,
-            name='Rrs at 470nm (sr^-1, 2025-10-17)',
+            name='Rrs at 470nm (sr^-1)',
             control=True
         ).add_to(m)
     
