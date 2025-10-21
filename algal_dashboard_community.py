@@ -298,6 +298,9 @@ def main():
         zoom_control='bottomleft'
     )
     folium.TileLayer(
+        'openstreetmap', name='OpenStreetMap', overlay=False, control=True
+    ).add_to(m)
+    folium.TileLayer(
         tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
         attr='Esri', name='Satellite', overlay=False, control=True
     ).add_to(m)
@@ -331,10 +334,14 @@ def main():
             folium.raster_layers.ImageOverlay(
                 image=image_data_url,
                 bounds=[[-36, 134], [-32, 140]],  # [lat_min, lon_min], [lat_max, lon_max]
-                opacity=0.6,
+                opacity=0.8,
                 name='Rrs at 470nm (sr^-1)',
                 control=True
             ).add_to(m)
+            
+            # Debug: Display the processed image in Streamlit to confirm loading
+            buffered.seek(0)  # Reset buffer position
+            st.image(buffered, caption="Debug: Processed Raster Image (with transparency)", use_column_width=False)
         except Exception as e:
             st.error(f"Error loading or processing raster image: {e}")
    
