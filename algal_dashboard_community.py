@@ -6,7 +6,9 @@ import streamlit as st
 import altair as alt
 import os
 from datetime import timedelta
-import base64  # Add this import for base64 encoding
+import base64
+from PIL import Image  # Add this for image processing
+from io import BytesIO  # Add this for in-memory buffering
 
 # ---------------------------
 # Load data + coordinates
@@ -308,9 +310,24 @@ def main():
     # Add satellite raster if checkbox is selected
     if include_raster and os.path.exists(raster_file):
         try:
-            with open(raster_file, "rb") as image_file:
-                encoded_string = base64.b64encode(image_file.read()).decode()
+            # Load image and make white background transparent
+            img = Image.open(raster_file)
+            img = img.convert("RGBA")
+            datas = img.getdata()
+            newData = []
+            for item in datas:
+                if item[0] == 255 and item[1] == 255 and item[2] == 255:
+                    newData.append((255, 255, 255, 0))  # Set white to transparent
+                else:
+                    newData.append(item)
+            img.putdata(newData)
+            
+            # Convert to base64 data URL
+            buffered = BytesIO()
+            img.save(buffered, format="PNG")
+            encoded_string = base64.b64encode(buffered.getvalue()).decode()
             image_data_url = f"data:image/png;base64,{encoded_string}"
+            
             folium.raster_layers.ImageOverlay(
                 image=image_data_url,
                 bounds=[[-36, 134], [-32, 140]],  # [lat_min, lon_min], [lat_max, lon_max]
@@ -319,7 +336,7 @@ def main():
                 control=True
             ).add_to(m)
         except Exception as e:
-            st.error(f"Error loading raster image: {e}")
+            st.error(f"Error loading or processing raster image: {e}")
    
     viridis_colors = ['#641478', '#3b528b', '#21908c', '#5dc863', '#fde725']
     colormap = LinearColormap(colors=viridis_colors, vmin=0, vmax=500000)
