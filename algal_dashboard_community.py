@@ -6,6 +6,7 @@ import streamlit as st
 import altair as alt
 import os
 from datetime import timedelta
+import base64  # Add this import for base64 encoding
 
 # ---------------------------
 # Load data + coordinates
@@ -29,7 +30,7 @@ def load_data(file_path, coords_csv="site_coordinates.csv"):
                 .str.replace(r'\s+', ' ', regex=True)
                 .str.replace('\xa0', ' ', regex=False)
             )
-   
+  
     if not os.path.exists(coords_csv):
         st.error(f"⚠️ Coordinates file '{coords_csv}' not found. Please generate site_coordinates.csv first.")
         st.stop()
@@ -44,7 +45,7 @@ def load_community(file_path="MASTER spreadsheet of community summaries.xlsx"):
     if not os.path.exists(file_path):
         st.warning(f"⚠️ Community data file '{file_path}' not found. Using empty dataset.")
         return pd.DataFrame()
-   
+  
     df = pd.read_excel(file_path, sheet_name=0)
     df.columns = df.columns.str.strip()
     if 'Lat' in df.columns:
@@ -171,20 +172,17 @@ def main():
     }
     </style>
     """, unsafe_allow_html=True)
-
     # File paths and data
     file_path = "HarmfulAlgalBloom_MonitoringSites_8382667239581124066.csv"
     coords_csv = "site_coordinates.csv"
     raster_file = "pace_rrs_at_470.0_nm.png"
     df = load_data(file_path, coords_csv)
     community_df = load_community()
-
     # Persistent state for filters
     if 'species_selected' not in st.session_state:
         st.session_state.species_selected = []
     if 'date_range' not in st.session_state:
         st.session_state.date_range = []
-
     # Sidebar: Title, colorbar, filters
     with st.sidebar:
         st.markdown(
@@ -206,15 +204,12 @@ def main():
         )
         include_community = st.checkbox('Include community data')
         include_raster = st.checkbox('Show satellite remote reflectance sensing data at 470nm')
-
         st.markdown('<div class="sidebar-card">Filters</div>', unsafe_allow_html=True)
-
         combined_df = pd.concat([df, community_df], ignore_index=True) if include_community else df.copy()
         if not combined_df.empty:
             min_date, max_date = combined_df['Date_Sample_Collected'].min(), combined_df['Date_Sample_Collected'].max()
         else:
             min_date, max_date = pd.to_datetime('2020-01-01'), pd.to_datetime('2025-12-31')
-
         all_species = sorted(combined_df['Result_Name'].dropna().unique())
         previous_selected = st.session_state.species_selected
         filtered_previous = [s for s in previous_selected if s in all_species]
@@ -258,7 +253,6 @@ def main():
             start_date, end_date = pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1])
         else:
             start_date, end_date = min_date, max_date
-
     # Filter dataset
     mask_main = (
         df['Result_Name'].isin(species_selected) &
@@ -294,7 +288,6 @@ def main():
         """,
         unsafe_allow_html=True
     )
-
     # Map
     m = folium.Map(
         location=[-34.9, 138.6],
@@ -311,17 +304,23 @@ def main():
         attr='Esri', name='Labels', overlay=True, control=True
     ).add_to(m)
     folium.LayerControl(position='bottomright').add_to(m)
-    
+   
     # Add satellite raster if checkbox is selected
     if include_raster and os.path.exists(raster_file):
-        folium.raster_layers.ImageOverlay(
-            image=raster_file,
-            bounds=[[-36, 134], [-32, 140]],  # [lat_min, lon_min], [lat_max, lon_max]
-            opacity=0.6,
-            name='Rrs at 470nm (sr^-1)',
-            control=True
-        ).add_to(m)
-    
+        try:
+            with open(raster_file, "rb") as image_file:
+                encoded_string = base64.b64encode(image_file.read()).decode()
+            image_data_url = f"data:image/png;base64,{encoded_string}"
+            folium.raster_layers.ImageOverlay(
+                image=image_data_url,
+                bounds=[[-36, 134], [-32, 140]],  # [lat_min, lon_min], [lat_max, lon_max]
+                opacity=0.6,
+                name='Rrs at 470nm (sr^-1)',
+                control=True
+            ).add_to(m)
+        except Exception as e:
+            st.error(f"Error loading raster image: {e}")
+   
     viridis_colors = ['#641478', '#3b528b', '#21908c', '#5dc863', '#fde725']
     colormap = LinearColormap(colors=viridis_colors, vmin=0, vmax=500000)
     for _, row in sub_df.iterrows():
@@ -359,7 +358,6 @@ def main():
         if pd.notna(lat_min) and pd.notna(lon_min) and pd.notna(lat_max) and pd.notna(lon_max):
             m.fit_bounds([[lat_min, lon_min], [lat_max, lon_max]])
     st_folium(m, width='100%', height=550)
-
     # Trends Section
     if not df.empty:
         st.subheader("Trends Over Time")
