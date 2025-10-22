@@ -308,39 +308,38 @@ def main():
         attr='Esri', name='Labels', overlay=True, control=True
     ).add_to(m)
     folium.LayerControl(position='bottomright').add_to(m)
+    if include_raster and os.path.exists(raster_file):
+        try:
+            # Load image and add transparency where black
+            img = Image.open(raster_file).convert("RGBA")
+            datas = img.getdata()
+            new_data = []
+            for item in datas:
+                if item[0] < 10 and item[1] < 10 and item[2] < 10:  # black → transparent
+                    new_data.append((0, 0, 0, 0))
+                else:
+                    new_data.append(item)
+            img.putdata(new_data)
+            img.save("overlay_temp.png", format="PNG")
 
-if include_raster and os.path.exists(raster_file):
-    try:
-        # Load image and add transparency where black
-        img = Image.open(raster_file).convert("RGBA")
-        datas = img.getdata()
-        new_data = []
-        for item in datas:
-            if item[0] < 10 and item[1] < 10 and item[2] < 10:  # black → transparent
-                new_data.append((0, 0, 0, 0))
-            else:
-                new_data.append(item)
-        img.putdata(new_data)
-        img.save("overlay_temp.png", format="PNG")
+            # Add to Folium
+            folium.raster_layers.ImageOverlay(
+                name="Rrs 470 nm (PACE)",
+                image="overlay_temp.png",
+                bounds=[[-36, 134], [-32, 140]],  # ✅ matches 3000×2000 ratio
+                opacity=0.75,
+                interactive=True,
+                cross_origin=False
+            ).add_to(m)
 
-        # Add to Folium
-        folium.raster_layers.ImageOverlay(
-            name="Rrs 470 nm (PACE)",
-            image="overlay_temp.png",
-            bounds=[[-36, 134], [-32, 140]],  # ✅ matches 3000×2000 ratio
-            opacity=0.75,
-            interactive=True,
-            cross_origin=False
-        ).add_to(m)
+            # Optional debug outline
+            folium.Rectangle(
+                bounds=[[-36, 134], [-32, 140]],
+                color="red", fill=False, weight=2
+            ).add_to(m)
 
-        # Optional debug outline
-        folium.Rectangle(
-            bounds=[[-36, 134], [-32, 140]],
-            color="red", fill=False, weight=2
-        ).add_to(m)
-
-    except Exception as e:
-        st.error(f"Error overlaying raster: {e}")
+        except Exception as e:
+            st.error(f"Error overlaying raster: {e}")
 
     viridis_colors = ['#641478', '#3b528b', '#21908c', '#5dc863', '#fde725']
     colormap = LinearColormap(colors=viridis_colors, vmin=0, vmax=500000)
