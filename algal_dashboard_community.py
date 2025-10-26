@@ -513,8 +513,21 @@ def main():
     # ---------------------------
     # New panel below trends: Display PNG image
     # ---------------------------
-    st.subheader("PACE RRS at 470.0 nm")
-    st.image("pace_rrs_at_470.0_nm.png", use_column_width=True)
+    st.subheader("PACE Remote reflectance sensing (Rrs) Satellite Image")
+    st.caption("This is NASA PACE satellite imagery processed for dates indicated. I have found, via specific calibration to Karenia sp. cell counts, that using a specific wavelength (470nm) gives more accurate results (Spearman R2=0.68) than use of chlorophyll imagery. This is because many algal species contribute to chlorophyll, so it can be inaccurate in regard to detecting Karenia. This is a beta research product and subject to change")
+    st.image("pace_rrs_at_470.0_nm_composite.png", use_container_width=True)
+    image_path = "pace_rrs_at_470.0_nm_composite.png"
+    if os.path.exists(image_path):
+        with open(image_path, "rb") as file:
+            img_data = file.read()
+        st.download_button(
+            label="Download Image",
+            data=img_data,
+            file_name="pace_rrs_at_470.0_nm_composite.png",
+            mime="image/png"
+        )
+    else:
+        st.warning("Image file not found for download.")
 if __name__ == "__main__":
     main()
 
