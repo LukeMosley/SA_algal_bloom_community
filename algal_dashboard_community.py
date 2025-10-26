@@ -514,7 +514,7 @@ def main():
     # New panel below trends: Display PNG image
     # ---------------------------
     st.subheader("PACE Remote reflectance sensing (Rrs) Satellite Image")
-    st.caption("This is NASA PACE satellite imagery processed for dates indicated. I have found, via specific calibration to Karenia sp. cell counts, that using a specific wavelength (470nm) gives more accurate results (Spearman R2=0.68) than use of chlorophyll imagery. This is because many algal species contribute to chlorophyll, so it can be inaccurate in regard to detecting Karenia. This is a beta research product and subject to change")
+    st.caption("This is NASA PACE satellite imagery processed as a composite between the dates indicated on the plot. I have found, via specific calibration to Karenia sp. cell counts, that using a specific wavelength (470 nm) gives more accurate results than use of chlorophyll imagery (that use other wavelengths). This is because many algal species contribute to chlorophyll, so it can be inaccurate in regard to detecting Karenia. Note this is a beta version and subject to change. Frequency of updates is reliant on relatively cloud-free conditions")
     st.image("pace_rrs_at_470.0_nm_composite.png", use_container_width=True)
     image_path = "pace_rrs_at_470.0_nm_composite.png"
     if os.path.exists(image_path):
