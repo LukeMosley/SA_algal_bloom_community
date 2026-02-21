@@ -14,155 +14,193 @@ import requests
 @st.cache_data(ttl=3600)
 def fetch_from_arcgis(base_url, layer_id, is_point=False):
     query_url = f"{base_url}/{layer_id}/query"
-    
-    params = {'where': '1=1', 'returnCountOnly': 'true', 'f': 'json'}
+
+    params = {
+        'where': '1=1',
+        'outFields': '*',
+        'returnGeometry': 'true' if is_point else 'false',
+        'outSR': '4326',
+        'f': 'json'
+    }
+
     try:
-        response = requests.get(query_url, params=params, timeout=15)
-        response.raise_for_status()
-        count = response.json().get('count', 0)
+        r = requests.get(query_url, params=params, timeout=20)
+        r.raise_for_status()
+        data = r.json()
     except Exception as e:
-        st.error(f"Error fetching count from ArcGIS: {e}")
+        st.error(f"ArcGIS request failed (layer {layer_id}): {e}")
         return pd.DataFrame()
-    
-    if count == 0:
+
+    features = data.get("features", [])
+    if not features:
+        st.warning(f"No features returned from layer {layer_id}")
         return pd.DataFrame()
-    
-    features = []
-    batch_size = 1000
-    for offset in range(0, count, batch_size):
-        params = {
-            'where': '1=1',
-            'outFields': '*',
-            'resultOffset': offset,
-            'resultRecordCount': min(batch_size, count - offset),
-            'f': 'json'
-        }
-        if is_point:
-            params['returnGeometry'] = 'true'
-            params['outSR'] = '4326'
-        
-        try:
-            r = requests.get(query_url, params=params, timeout=15)
-            r.raise_for_status()
-            data = r.json()
-            features.extend(data.get('features', []))
-        except Exception as e:
-            st.warning(f"Error fetching batch at offset {offset}: {e}")
-            continue
-    
+
     rows = []
     for f in features:
-        row = f.get('attributes', {})
-        if is_point and 'geometry' in f:
-            geom = f['geometry']
-            row['Longitude'] = geom.get('x')
-            row['Latitude'] = geom.get('y')
-        rows.append(row)
-    
+        attrs = f.get("attributes", {}).copy()
+
+        if is_point:
+            geom = f.get("geometry", {})
+            attrs["Longitude"] = geom.get("x")
+            attrs["Latitude"] = geom.get("y")
+
+        rows.append(attrs)
+
     return pd.DataFrame(rows)
 
-@st.cache_data(ttl=7200)  # 2 hours
+@st.cache_data(ttl=7200)
 def load_gov_data():
+
     BASE_SERVICE_URL = "https://services6.arcgis.com/WS2XycMNFieWAsfS/arcgis/rest/services/HarmfulAlgalBloom_MonitoringSites/FeatureServer"
-    
+
     sample_df = fetch_from_arcgis(BASE_SERVICE_URL, 1, is_point=False)
-    
-    if sample_df.empty:
-        st.warning("No sample data retrieved from ArcGIS.")
-    else:
-        if 'Date_Sample_Collected' in sample_df.columns:
-            # FIXED: Remove unit='ms' - dates are strings 'YYYY-MM-DD'. Auto-parse.
-            # If numeric (future change), handle separately.
-            if pd.api.types.is_numeric_dtype(sample_df['Date_Sample_Collected']):
-                sample_df['Date_Sample_Collected'] = pd.to_datetime(
-                    sample_df['Date_Sample_Collected'], unit='ms', errors='coerce'
-                )
-            else:
-                sample_df['Date_Sample_Collected'] = pd.to_datetime(
-                    sample_df['Date_Sample_Collected'], errors='coerce'
-                )
-        
-        if 'Result_Name' in sample_df.columns:
-            sample_df['Result_Name'] = (
-                sample_df['Result_Name']
-                .astype(str)
-                .str.strip()
-                .str.replace(r'\s+', ' ', regex=True)
-                .str.replace('\xa0', ' ', regex=False)
-            )
-    
     sites_df = fetch_from_arcgis(BASE_SERVICE_URL, 0, is_point=True)
-    
+
+    if sample_df.empty:
+        st.error("No government sample data retrieved.")
+        return pd.DataFrame()
+
     if sites_df.empty:
-        st.error("No monitoring site locations retrieved from ArcGIS.")
-        st.stop()
-    
-    join_key = 'Site_Number'
-    
-    if join_key not in sample_df.columns:
-        st.error(f"Join key '{join_key}' not found in sample data columns.")
-        st.stop()
-    if 'SiteNumber' not in sites_df.columns:
-        st.error(f"'SiteNumber' not found in sites columns.")
-        st.stop()
-    
-    merged_df = sample_df.merge(
-        sites_df.rename(columns={'SiteNumber': 'Site_Number'}),
-        on='Site_Number',
-        how='left'
+        st.error("No monitoring site geometry retrieved.")
+        return pd.DataFrame()
+
+    # -------------------------
+    # 🔎 Clean & Standardise Column Names
+    # -------------------------
+    sample_df.columns = sample_df.columns.str.strip()
+    sites_df.columns = sites_df.columns.str.strip()
+
+    # -------------------------
+    # 🔎 Detect Join Key Automatically
+    # -------------------------
+    possible_sample_keys = [c for c in sample_df.columns if "site" in c.lower()]
+    possible_site_keys = [c for c in sites_df.columns if "site" in c.lower()]
+
+    if not possible_sample_keys or not possible_site_keys:
+        st.error("Could not detect site join columns automatically.")
+        st.write("Sample columns:", sample_df.columns.tolist())
+        st.write("Site columns:", sites_df.columns.tolist())
+        return pd.DataFrame()
+
+    sample_key = possible_sample_keys[0]
+    site_key = possible_site_keys[0]
+
+    # Force string type for safe join
+    sample_df[sample_key] = sample_df[sample_key].astype(str)
+    sites_df[site_key] = sites_df[site_key].astype(str)
+
+    sites_df = sites_df.rename(columns={site_key: sample_key})
+
+    merged_df = sample_df.merge(sites_df, on=sample_key, how="left")
+
+    # -------------------------
+    # 🔎 Date Handling (epoch OR string)
+    # -------------------------
+    date_col = [c for c in merged_df.columns if "date" in c.lower()]
+    if date_col:
+        date_col = date_col[0]
+
+        if pd.api.types.is_numeric_dtype(merged_df[date_col]):
+            merged_df[date_col] = pd.to_datetime(
+                merged_df[date_col], unit="ms", errors="coerce"
+            )
+        else:
+            merged_df[date_col] = pd.to_datetime(
+                merged_df[date_col], errors="coerce"
+            )
+
+        merged_df = merged_df.rename(columns={date_col: "Date_Sample_Collected"})
+    else:
+        st.warning("No date column detected in government data.")
+
+    # -------------------------
+    # 🔎 Clean Species Names
+    # -------------------------
+    if "Result_Name" in merged_df.columns:
+        merged_df["Result_Name"] = (
+            merged_df["Result_Name"]
+            .astype(str)
+            .str.strip()
+            .str.replace(r"\s+", " ", regex=True)
+        )
+
+    # -------------------------
+    # 🔎 Ensure Numeric Values
+    # -------------------------
+    if "Result_Value_Numeric" in merged_df.columns:
+        merged_df["Result_Value_Numeric"] = pd.to_numeric(
+            merged_df["Result_Value_Numeric"],
+            errors="coerce"
+        )
+
+    # -------------------------
+    # 🔎 Ensure Coordinates Numeric
+    # -------------------------
+    merged_df["Latitude"] = pd.to_numeric(merged_df.get("Latitude"), errors="coerce")
+    merged_df["Longitude"] = pd.to_numeric(merged_df.get("Longitude"), errors="coerce")
+
+    # Debug info (safe)
+    st.sidebar.caption(f"Gov rows: {len(merged_df)}")
+    st.sidebar.caption(
+        f"Gov rows with coords: {merged_df[['Latitude','Longitude']].dropna().shape[0]}"
     )
-    
-    merged_df['Latitude'] = pd.to_numeric(merged_df['Latitude'], errors='coerce')
-    merged_df['Longitude'] = pd.to_numeric(merged_df['Longitude'], errors='coerce')
-    
+
     return merged_df
 
 @st.cache_data
 def load_community(file_path="MASTER spreadsheet of community summaries.xlsx"):
+
     if not os.path.exists(file_path):
-        st.warning(f"Community data file '{file_path}' not found. Using empty dataset.")
+        st.warning("Community Excel file not found.")
         return pd.DataFrame()
-    
-    df = pd.read_excel(file_path, sheet_name=0)
+
+    df = pd.read_excel(file_path)
     df.columns = df.columns.str.strip()
-    
-    if 'Lat' in df.columns:
-        df = df.rename(columns={'Lat': 'Latitude'})
-    if 'Long' in df.columns:
-        df = df.rename(columns={'Long': 'Longitude'})
-    
-    if 'Date' in df.columns and not pd.api.types.is_datetime64_any_dtype(df['Date']):
-        df['Date'] = pd.to_datetime(df['Date'], origin='1899-12-30', errors='coerce')
-    
-    date_idx = df.columns.get_loc('Date')
-    total_idx = df.columns.get_loc('Total plankton')
-    species_cols = df.columns[date_idx + 1 : total_idx + 1].tolist()
-    
+
+    if "Lat" in df.columns:
+        df = df.rename(columns={"Lat": "Latitude"})
+    if "Long" in df.columns:
+        df = df.rename(columns={"Long": "Longitude"})
+
+    # Ensure Date
+    if "Date" in df.columns:
+        df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+
+    # Identify species columns automatically
+    fixed_cols = ["Location", "Latitude", "Longitude", "Date"]
+    species_cols = [c for c in df.columns if c not in fixed_cols]
+
     melted_df = pd.melt(
         df,
-        id_vars=['Location', 'Latitude', 'Longitude', 'Date'],
+        id_vars=fixed_cols,
         value_vars=species_cols,
-        var_name='Result_Name',
-        value_name='Result_Value_Numeric'
+        var_name="Result_Name",
+        value_name="Result_Value_Numeric"
     )
-    
-    melted_df['Site_Description'] = melted_df['Location']
-    melted_df['Date_Sample_Collected'] = melted_df['Date']
-    melted_df = melted_df.drop(['Location', 'Date'], axis=1)
-    
-    melted_df['Result_Value_Numeric'] *= 1000
-    melted_df['Units'] = 'cells/L'
-    melted_df['Result_Name'] = (
-        melted_df['Result_Name']
+
+    # Clean values
+    melted_df["Result_Value_Numeric"] = pd.to_numeric(
+        melted_df["Result_Value_Numeric"],
+        errors="coerce"
+    )
+
+    melted_df["Result_Value_Numeric"] *= 1000  # convert to cells/L
+
+    melted_df["Result_Name"] = (
+        melted_df["Result_Name"]
         .astype(str)
         .str.strip()
-        .str.replace(r'\s+', ' ', regex=True)
-        .str.replace('\xa0', ' ', regex=False)
-    ) + ' *'
-    
-    melted_df['Latitude'] = pd.to_numeric(melted_df['Latitude'], errors='coerce')
-    melted_df['Longitude'] = pd.to_numeric(melted_df['Longitude'], errors='coerce')
-    
+    ) + " *"
+
+    melted_df["Date_Sample_Collected"] = melted_df["Date"]
+    melted_df["Site_Description"] = melted_df["Location"]
+
+    melted_df["Latitude"] = pd.to_numeric(melted_df["Latitude"], errors="coerce")
+    melted_df["Longitude"] = pd.to_numeric(melted_df["Longitude"], errors="coerce")
+
+    st.sidebar.caption(f"Community rows: {len(melted_df)}")
+
     return melted_df
 
 # ---------------------------
