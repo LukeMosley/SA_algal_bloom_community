@@ -166,6 +166,10 @@ def main():
     st.markdown("""<style> ... your full CSS ... </style>""", unsafe_allow_html=True)
 
     df = load_gov_data()
+    # Quick check for Result_Name quality
+    st.sidebar.subheader("DEBUG: Species Preview")
+    st.sidebar.write("Gov Result_Name unique count:", df['Result_Name'].nunique(dropna=True))
+    st.sidebar.write("Gov Result_Name head (non-null):", df['Result_Name'].dropna().head(10).tolist())
     community_df = load_community()
 
     # Debug: show immediately after loading
