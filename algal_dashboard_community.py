@@ -61,7 +61,7 @@ def fetch_from_arcgis(base_url, layer_id, is_point=False):
     
     return pd.DataFrame(rows)
 
-@st.cache_data(ttl=7200)  # 2 hours - good for 1-2 day update frequency
+@st.cache_data(ttl=7200)  # 2 hours
 def load_gov_data():
     BASE_SERVICE_URL = "https://services6.arcgis.com/WS2XycMNFieWAsfS/arcgis/rest/services/HarmfulAlgalBloom_MonitoringSites/FeatureServer"
     
@@ -71,9 +71,17 @@ def load_gov_data():
         st.warning("No sample data retrieved from ArcGIS.")
     else:
         if 'Date_Sample_Collected' in sample_df.columns:
-            sample_df['Date_Sample_Collected'] = pd.to_datetime(
-                sample_df['Date_Sample_Collected'], unit='ms', errors='coerce'
-            )
+            # FIXED: Remove unit='ms' - dates are strings 'YYYY-MM-DD'. Auto-parse.
+            # If numeric (future change), handle separately.
+            if pd.api.types.is_numeric_dtype(sample_df['Date_Sample_Collected']):
+                sample_df['Date_Sample_Collected'] = pd.to_datetime(
+                    sample_df['Date_Sample_Collected'], unit='ms', errors='coerce'
+                )
+            else:
+                sample_df['Date_Sample_Collected'] = pd.to_datetime(
+                    sample_df['Date_Sample_Collected'], errors='coerce'
+                )
+        
         if 'Result_Name' in sample_df.columns:
             sample_df['Result_Name'] = (
                 sample_df['Result_Name']
@@ -112,7 +120,7 @@ def load_gov_data():
 @st.cache_data
 def load_community(file_path="MASTER spreadsheet of community summaries.xlsx"):
     if not os.path.exists(file_path):
-        st.warning(f"Community data file '{file_path}' not found.")
+        st.warning(f"Community data file '{file_path}' not found. Using empty dataset.")
         return pd.DataFrame()
     
     df = pd.read_excel(file_path, sheet_name=0)
@@ -167,7 +175,6 @@ def main():
         initial_sidebar_state="expanded"
     )
     
-    # Custom CSS (unchanged)
     st.markdown("""
     <style>
     .block-container {padding-top: 1rem; padding-bottom: 0.25rem;}
@@ -208,6 +215,10 @@ def main():
     df = load_gov_data()
     community_df = load_community()
     
+    # Temporary debug captions - remove after testing
+    st.sidebar.caption(f"Government data loaded: {len(df)} rows")
+    st.sidebar.caption(f"Community data loaded: {len(community_df)} rows")
+    
     if 'species_multiselect' not in st.session_state:
         st.session_state.species_multiselect = []
     if 'date_range' not in st.session_state:
@@ -235,10 +246,9 @@ def main():
         if 'prev_include_community' not in st.session_state:
             st.session_state.prev_include_community = True
         if include_community != st.session_state.prev_include_community:
-            st.session_state.date_range = []  # Reset date to trigger sensible default
+            st.session_state.date_range = []  
             st.session_state.prev_include_community = include_community
         
-        # Refresh button
         if st.button("↻ Refresh Government Data"):
             load_gov_data.clear()
             st.success("Government data refreshed from ArcGIS!")
@@ -246,13 +256,11 @@ def main():
         
         st.markdown('<div class="sidebar-card">Filters</div>', unsafe_allow_html=True)
         
-        # Combined or government-only dataframe
         if include_community:
             combined_df = pd.concat([df, community_df], ignore_index=True)
         else:
             combined_df = df.copy()
         
-        # Safe min/max dates
         if combined_df.empty or 'Date_Sample_Collected' not in combined_df.columns:
             min_date = pd.to_datetime('2020-01-01')
             max_date = pd.to_datetime('2030-12-31')
@@ -264,10 +272,8 @@ def main():
             if pd.isna(max_date):
                 max_date = pd.to_datetime('2030-12-31')
         
-        # All available species
         all_species = sorted(combined_df['Result_Name'].dropna().unique()) if 'Result_Name' in combined_df else []
         
-        # ── Safer species selection logic ──
         previous_selected = st.session_state.get("species_multiselect", [])
         valid_previous = [s for s in previous_selected if s in all_species]
         
@@ -284,7 +290,6 @@ def main():
             key="species_multiselect"
         )
         
-        # Date range
         last_two_weeks_start = max_date - timedelta(days=14)
         default_date_range = [last_two_weeks_start.date(), max_date.date()]
         
@@ -302,7 +307,6 @@ def main():
         else:
             start_date, end_date = min_date, max_date
         
-        # Record count
         if include_community:
             mask = (
                 combined_df['Result_Name'].isin(species_selected) &
@@ -320,19 +324,26 @@ def main():
         
         st.markdown(f'<div class="records-count">Showing {filtered_records} records matching selected species and date range</div>', unsafe_allow_html=True)
         
-        # Disclaimer (shortened - expand as needed)
         st.markdown(
             """
             <div style="font-size:11px; color:#666; margin-top:10px; margin-bottom:20px; padding:4px; border-top:1px solid #ddd;">
             <p style="margin-bottom: 10px;">An instructional video on use of this dashboard can be found <a href="https://vimeo.com/manage/videos/1126101537" target="_blank">here</a>.</p>
-            <p>Disclaimer: This application is a research product that utilises publicly available data from the South Australian Government...</p>
+            <p>Disclaimer: This application is a research product that utilises publicly available
+            <a href="https://experience.arcgis.com/experience/5f0d6b22301a47bf91d198cabb030670" target="_blank">
+            data</a> from the South Australian Government. No liability is accepted
+            by the creator (A/Prof. Luke Mosley) or Adelaide University for the use
+            of this system or the data it contains, which may be incomplete, inaccurate,
+            or out of date. Users should consult the official South Australian Government
+            advice (see <a href="https://www.algalbloom.sa.gov.au/" target="_blank">
+            https://www.algalbloom.sa.gov.au/</a>) and/or obtain independent advice before
+            relying on information in this application.</p>
+            <p style="margin-top: 10px;">The <a href="https://www.facebook.com/groups/3434137440095343" target="_blank">
+            Phytoplankton of South Australia group</a> and many community volunteers who contributed data and feedback for this dashboard are kindly thanked, in particular: Peri Coleman, Samantha Sea, Carey Hannaford, Kathryn Lewis, Troy Johnson, Lyndon Zimmermann, Faith Coleman, Anthony Rowland, Phil Bamford, Jane Power, Lochie Cameron, Wendy Lambert, Letitia Dahl-Helm, Caro Hannan, Greg Hyde and Karin Hatch.</p>
             </div>
             """,
             unsafe_allow_html=True
         )
     
-    # ── Rest of your app remains unchanged ──
-    # Filter main data
     mask_main = (
         df['Result_Name'].isin(species_selected) &
         df['Date_Sample_Collected'].between(start_date, end_date) &
@@ -349,7 +360,6 @@ def main():
         )
         comm_sub_df = community_df[mask_comm].copy()
     
-    # Map (your existing map code here - unchanged)
     m = folium.Map(location=[-34.9, 138.6], zoom_start=6, control_scale=True)
     
     folium.TileLayer(
@@ -398,7 +408,6 @@ def main():
     
     st_folium(m, width='100%', height=550)
     
-    # Trends section (unchanged - but add guard if needed)
     st.subheader("Trends Over Time")
     include_comm_in_trends = st.checkbox("Include community data in trends", value=include_community)
     
@@ -455,10 +464,8 @@ def main():
     else:
         st.info("No data available for selected species and site.")
     
-    # NASA PACE section (unchanged)
     st.subheader("NASA PACE Satellite Remote Sensing Reflectance Image")
-    st.caption("This map is derived from NASA PACE satellite imagery processed on date(s) (UTC) indicated on the plot...")
-    
+    st.caption("This map is derived from NASA PACE satellite imagery processed on date(s) (UTC) indicated on the plot. I have found, via specific calibration to Karenia sp. cell counts, that using a specific wavelength (approx. 470 nm) gives more accurate results than use of chlorophyll imagery (that uses other non-specific wavelengths). This is because many algal species contribute to chlorophyll, so it can be inaccurate in regard to detecting Karenia species. Blue indicates lower levels; lighter blue to green moderate levels; orange to red high levels. Note this is a beta version and subject to change. Frequency of updates is reliant on relatively cloud-free conditions!")
     if os.path.exists("pace_rrs_at_470.0_nm.png"):
         st.image("pace_rrs_at_470.0_nm.png", use_container_width=True)
     
