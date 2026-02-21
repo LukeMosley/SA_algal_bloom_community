@@ -190,62 +190,41 @@ def main():
     if 'date_range' not in st.session_state:
         st.session_state.date_range = []
 
+    # ... after df = load_gov_data() and community_df = load_community() ...
+
+    # Your session state init ...
+
     with st.sidebar:
-        # Your sidebar title, colorbar, checkbox, refresh button ... (unchanged)
+        # ... title, colorbar, include_community checkbox, refresh button ...
 
         include_community = st.checkbox('Include community data', value=True)
-        # ... your prev_include_community logic ...
+        # ... prev_include_community logic if needed ...
 
         if st.button("↻ Refresh Government Data"):
             load_gov_data.clear()
-            st.success("Government data refreshed!")
+            st.success("Government data refreshed from ArcGIS!")
             st.rerun()
 
-        # Filters ...
+        st.markdown('<div class="sidebar-card">Filters</div>', unsafe_allow_html=True)
+
         if include_community:
             combined_df = pd.concat([df, community_df], ignore_index=True)
         else:
             combined_df = df.copy()
 
-        if combined_df.empty or 'Date_Sample_Collected' not in combined_df.columns:
-            min_date = pd.to_datetime('2020-01-01')
-            max_date = pd.to_datetime('2030-12-31')
-        else:
-            min_date = combined_df['Date_Sample_Collected'].min()
-            max_date = combined_df['Date_Sample_Collected'].max()
-            if pd.isna(min_date):
-                min_date = pd.to_datetime('2020-01-01')
-            if pd.isna(max_date):
-                max_date = pd.to_datetime('2030-12-31')
-
-        all_species = sorted(combined_df['Result_Name'].dropna().unique())
-
-        # Your species multiselect logic ...
-
-        # ... after calculating combined_df, min_date, max_date ...
+        # min_date / max_date calculation (unchanged)
 
         all_species = sorted(combined_df['Result_Name'].dropna().unique().tolist()) if 'Result_Name' in combined_df else []
 
-        # Debug: show what species are actually available
-        st.sidebar.caption(f"Available species count: {len(all_species)}")
-        if all_species:
-            st.sidebar.caption("First 10 species: " + ", ".join(all_species[:10]))
-        else:
-            st.sidebar.warning("No species names found in data.")
+        # Your debug captions for species count / first 10 (good, keep)
 
-        # Safe default: only Karenia that actually exist in all_species
+        # Safe Karenia defaults (case-insensitive)
         karenia_defaults = [s for s in all_species if "karenia" in s.lower()]
-        if karenia_defaults:
-            default_species = karenia_defaults[:3]  # limit to avoid overload
-        else:
-            default_species = all_species[:3] if all_species else []
+        default_species = karenia_defaults[:3] if karenia_defaults else (all_species[:3] if all_species else [])
 
-        # Extra safety: filter defaults to only those in options
-        default_species = [s for s in default_species if s in all_species]
-
+        # Previous selection safety
         previous_selected = st.session_state.get("species_multiselect", [])
         valid_previous = [s for s in previous_selected if s in all_species]
-
         if valid_previous:
             default_species = valid_previous
 
@@ -256,6 +235,75 @@ def main():
             key="species_multiselect",
             placeholder="Select one or more species..."
         )
+
+        # Date input
+        last_two_weeks_start = max_date - timedelta(days=14)
+        default_date_range = [last_two_weeks_start.date(), max_date.date()]
+
+        date_range = st.date_input(
+            "Date range (year/month/day format)",
+            value=st.session_state.date_range if st.session_state.date_range else default_date_range,
+            min_value=min_date.date(),
+            max_value=max_date.date(),
+            key="date_input"
+        )
+        st.session_state.date_range = date_range
+
+        # Define start/end here — this is now in scope for everything below
+        if len(date_range) == 2:
+            start_date = pd.to_datetime(date_range[0])
+            end_date = pd.to_datetime(date_range[1])
+        else:
+            start_date = min_date
+            end_date = max_date
+
+        # Filtered records count (sidebar only)
+        if include_community:
+            mask_sidebar = (
+                combined_df['Result_Name'].isin(species_selected) &
+                combined_df['Date_Sample_Collected'].between(start_date, end_date) &
+                combined_df['Result_Value_Numeric'].notna()
+            )
+            filtered_records = len(combined_df[mask_sidebar])
+        else:
+            mask_sidebar = (
+                df['Result_Name'].isin(species_selected) &
+                df['Date_Sample_Collected'].between(start_date, end_date) &
+                df['Result_Value_Numeric'].notna()
+            )
+            filtered_records = len(df[mask_sidebar])
+
+        st.markdown(f'<div class="records-count">Showing {filtered_records} records matching selected species and date range</div>', unsafe_allow_html=True)
+
+        # ... your long disclaimer markdown ...
+
+    # Now filtering and map — OUTSIDE sidebar, but variables are defined
+    mask_main = (
+        df['Result_Name'].isin(species_selected) &
+        df['Date_Sample_Collected'].between(start_date, end_date) &
+        df['Result_Value_Numeric'].notna()
+    )
+    sub_df = df[mask_main].copy()
+
+    comm_sub_df = pd.DataFrame()
+    if include_community:
+        mask_comm = (
+            community_df['Result_Name'].isin(species_selected) &
+            community_df['Date_Sample_Collected'].between(start_date, end_date) &
+            community_df['Result_Value_Numeric'].notna()
+        )
+        comm_sub_df = community_df[mask_comm].copy()
+
+    # Debug filtered counts (keep in sidebar or main)
+    st.sidebar.caption(f"Government filtered: {len(sub_df)} rows")
+    st.sidebar.caption(f"Community filtered: {len(comm_sub_df)} rows")
+    st.sidebar.caption(f"Total to plot: {len(sub_df) + len(comm_sub_df)}")
+
+    # Map code (folium setup, colormap, loops to add CircleMarker) — unchanged from your version
+    # Use row.get('Site_Description', row.get('SiteName', 'Unknown')) for popup safety
+    # ... rest of map ...
+
+    # Trends section, NASA images — unchanged
 
         # Your date_input ...
 
