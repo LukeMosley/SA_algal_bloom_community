@@ -11,16 +11,11 @@ import requests
 # ---------------------------
 # Fetch data from ArcGIS Feature Services
 # ---------------------------
-@st.cache_data(ttl=3600)  # Cache for 1 hour - adjust as needed
+@st.cache_data(ttl=3600)
 def fetch_from_arcgis(base_url, layer_id, is_point=False):
     query_url = f"{base_url}/{layer_id}/query"
     
-    # Get total count first
-    params = {
-        'where': '1=1',
-        'returnCountOnly': 'true',
-        'f': 'json'
-    }
+    params = {'where': '1=1', 'returnCountOnly': 'true', 'f': 'json'}
     try:
         response = requests.get(query_url, params=params, timeout=15)
         response.raise_for_status()
@@ -32,9 +27,8 @@ def fetch_from_arcgis(base_url, layer_id, is_point=False):
     if count == 0:
         return pd.DataFrame()
     
-    # Fetch features in batches
     features = []
-    batch_size = 1000  # Service allows up to 2000, but 1000 is safe
+    batch_size = 1000
     for offset in range(0, count, batch_size):
         params = {
             'where': '1=1',
@@ -45,7 +39,7 @@ def fetch_from_arcgis(base_url, layer_id, is_point=False):
         }
         if is_point:
             params['returnGeometry'] = 'true'
-            params['outSR'] = '4326'  # WGS84 lat/long
+            params['outSR'] = '4326'
         
         try:
             r = requests.get(query_url, params=params, timeout=15)
@@ -56,7 +50,6 @@ def fetch_from_arcgis(base_url, layer_id, is_point=False):
             st.warning(f"Error fetching batch at offset {offset}: {e}")
             continue
     
-    # Convert to DataFrame
     rows = []
     for f in features:
         row = f.get('attributes', {})
@@ -66,14 +59,12 @@ def fetch_from_arcgis(base_url, layer_id, is_point=False):
             row['Latitude'] = geom.get('y')
         rows.append(row)
     
-    df = pd.DataFrame(rows)
-    return df
+    return pd.DataFrame(rows)
 
-@st.cache_data(ttl=7200)  # Recommended: 2 hours as discussed
+@st.cache_data(ttl=7200)  # 2 hours - good for 1-2 day update frequency
 def load_gov_data():
     BASE_SERVICE_URL = "https://services6.arcgis.com/WS2XycMNFieWAsfS/arcgis/rest/services/HarmfulAlgalBloom_MonitoringSites/FeatureServer"
     
-    # Layer 1 = Sample Data (table)
     sample_df = fetch_from_arcgis(BASE_SERVICE_URL, 1, is_point=False)
     
     if sample_df.empty:
@@ -83,7 +74,6 @@ def load_gov_data():
             sample_df['Date_Sample_Collected'] = pd.to_datetime(
                 sample_df['Date_Sample_Collected'], unit='ms', errors='coerce'
             )
-        
         if 'Result_Name' in sample_df.columns:
             sample_df['Result_Name'] = (
                 sample_df['Result_Name']
@@ -93,39 +83,26 @@ def load_gov_data():
                 .str.replace('\xa0', ' ', regex=False)
             )
     
-    # Layer 0 = Monitoring Sites (points)
     sites_df = fetch_from_arcgis(BASE_SERVICE_URL, 0, is_point=True)
     
     if sites_df.empty:
         st.error("No monitoring site locations retrieved from ArcGIS.")
         st.stop()
     
-    # Join Sites and Data using Join Key
-    join_key = 'Site_Number'  # Matches Site_Number in samples and SiteNumber in sites
+    join_key = 'Site_Number'
     
-    # Optional safety check (you can keep or remove after testing)
     if join_key not in sample_df.columns:
-        st.error(f"Join key '{join_key}' not found in sample data columns: {list(sample_df.columns)}")
+        st.error(f"Join key '{join_key}' not found in sample data columns.")
         st.stop()
-    if 'SiteNumber' not in sites_df.columns:  # Note: Layer 0 uses SiteNumber (no underscore)
-        st.error(f"Join key equivalent 'SiteNumber' not found in sites columns: {list(sites_df.columns)}")
+    if 'SiteNumber' not in sites_df.columns:
+        st.error(f"'SiteNumber' not found in sites columns.")
         st.stop()
     
-    # Merge: Use the sample_df column name ('Site_Number') and rename sites column if needed
-    # But pandas merge can handle different names with left_on / right_on
     merged_df = sample_df.merge(
-        sites_df.rename(columns={'SiteNumber': 'Site_Number'}),  # Align names
+        sites_df.rename(columns={'SiteNumber': 'Site_Number'}),
         on='Site_Number',
         how='left'
     )
-    
-    # Or alternatively (cleaner if you prefer explicit):
-    # merged_df = sample_df.merge(
-    #     sites_df[['SiteNumber', 'Latitude', 'Longitude']],
-    #     left_on='Site_Number',
-    #     right_on='SiteNumber',
-    #     how='left'
-    # ).drop(columns=['SiteNumber'])  # optional cleanup
     
     merged_df['Latitude'] = pd.to_numeric(merged_df['Latitude'], errors='coerce')
     merged_df['Longitude'] = pd.to_numeric(merged_df['Longitude'], errors='coerce')
@@ -135,7 +112,7 @@ def load_gov_data():
 @st.cache_data
 def load_community(file_path="MASTER spreadsheet of community summaries.xlsx"):
     if not os.path.exists(file_path):
-        st.warning(f"Community data file '{file_path}' not found. Using empty dataset.")
+        st.warning(f"Community data file '{file_path}' not found.")
         return pd.DataFrame()
     
     df = pd.read_excel(file_path, sheet_name=0)
@@ -146,7 +123,7 @@ def load_community(file_path="MASTER spreadsheet of community summaries.xlsx"):
     if 'Long' in df.columns:
         df = df.rename(columns={'Long': 'Longitude'})
     
-    if not pd.api.types.is_datetime64_any_dtype(df.get('Date')):
+    if 'Date' in df.columns and not pd.api.types.is_datetime64_any_dtype(df['Date']):
         df['Date'] = pd.to_datetime(df['Date'], origin='1899-12-30', errors='coerce')
     
     date_idx = df.columns.get_loc('Date')
@@ -190,7 +167,7 @@ def main():
         initial_sidebar_state="expanded"
     )
     
-    # Custom CSS (kept as-is from your original)
+    # Custom CSS (unchanged)
     st.markdown("""
     <style>
     .block-container {padding-top: 1rem; padding-bottom: 0.25rem;}
@@ -202,100 +179,40 @@ def main():
     }
     section[data-testid="stSidebar"] .stMarkdown p {margin-bottom: 0.25rem;}
     .sidebar-card {
-        border: none;
-        border-radius: 0;
-        padding: 4px 0;
-        background: transparent;
-        margin-bottom: 0.25rem;
-        font-size: 14px;
-        font-weight: normal;
-        color: #666;
-        font-style: italic;
-        text-decoration: underline;
+        border: none; border-radius: 0; padding: 4px 0; background: transparent;
+        margin-bottom: 0.25rem; font-size: 14px; font-weight: normal; color: #666;
+        font-style: italic; text-decoration: underline;
     }
-    section[data-testid="stSidebar"] [data-testid="stCheckbox"] {
-        margin-top: 10px !important;
-    }
+    section[data-testid="stSidebar"] [data-testid="stCheckbox"] {margin-top: 10px !important;}
+    section[data-testid="stSidebar"] [data-testid="stMultiSelect"] {margin-top: -8px !important;}
+    section[data-testid="stSidebar"] label {font-weight: bold !important; color: #000 !important;}
+    section[data-testid="stSidebar"] span[data-baseweb="tag"] {font-size: 14px !important;}
     section[data-testid="stSidebar"] [data-testid="stMultiSelect"] {
-        margin-top: -8px !important;
-    }
-    section[data-testid="stSidebar"] label {
-        font-weight: bold !important;
-        color: #000 !important;
-    }
-    section[data-testid="stSidebar"] span[data-baseweb="tag"] {
-        font-size: 14px !important;
-    }
-    section[data-testid="stSidebar"] [data-testid="stMultiSelect"] {
-        font-size: 12px !important;
-        padding: 0.2rem 0.3rem !important;
-        margin: 0rem 0 0 !important;
+        font-size: 12px !important; padding: 0.2rem 0.3rem !important; margin: 0rem 0 0 !important;
     }
     section[data-testid="stSidebar"] [data-testid="stDateInput"] {
-        font-size: 12px !important;
-        padding: 0.2rem 0.3rem !important;
-        margin: 0rem 0 0 !important;
+        font-size: 12px !important; padding: 0.2rem 0.3rem !important; margin: 0rem 0 0 !important;
     }
-    .records-count {
-        font-size: 14px !important;
-        color: #666;
-        margin: 0.1rem 0 0;
-        padding-left: 4px;
-    }
-    .colorbar-wrapper {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 2px;
-    }
+    .records-count {font-size: 14px !important; color: #666; margin: 0.1rem 0 0; padding-left: 4px;}
+    .colorbar-wrapper {display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 2px;}
     .colorbar-container {
-        background: linear-gradient(to right,
-            #641478 0%, #89CFF0 20%, #21908c 40%, #5dc863 60%, #fde725 100%);
-        height: 20px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        padding: 0;
-        max-width: 95%;
-        width: 100%;
+        background: linear-gradient(to right, #641478 0%, #89CFF0 20%, #21908c 40%, #5dc863 60%, #fde725 100%);
+        height: 20px; border: 1px solid #ccc; border-radius: 4px; padding: 0; max-width: 95%; width: 100%;
     }
-    .colorbar-labels {
-        display: flex;
-        justify-content: space-between;
-        width: 100%;
-        font-size: 11px;
-        margin-top: 4px;
-        color: #666;
-    }
-    .colorbar-labels span {
-        flex: 1;
-        text-align: center;
-        color: #666;
-        font-weight: bold;
-    }
-    .colorbar-units {
-        font-size: 12px;
-        color: #666;
-        font-weight: bold;
-        margin-top: 4px;
-        margin-bottom: 4px;
-        text-align: center;
-        white-space: nowrap;
-    }
+    .colorbar-labels {display: flex; justify-content: space-between; width: 100%; font-size: 11px; margin-top: 4px; color: #666;}
+    .colorbar-labels span {flex: 1; text-align: center; color: #666; font-weight: bold;}
+    .colorbar-units {font-size: 12px; color: #666; font-weight: bold; margin: 4px 0; text-align: center; white-space: nowrap;}
     </style>
     """, unsafe_allow_html=True)
     
-    # Load data
-    df = load_gov_data()              # Government sample data + sites
-    community_df = load_community()   # Local Excel community data
+    df = load_gov_data()
+    community_df = load_community()
     
-    # Persistent session state for filters
-    if 'species_selected' not in st.session_state:
-        st.session_state.species_selected = []
+    if 'species_multiselect' not in st.session_state:
+        st.session_state.species_multiselect = []
     if 'date_range' not in st.session_state:
         st.session_state.date_range = []
     
-    # Sidebar
     with st.sidebar:
         st.markdown(
             '<div style="font-size:18px; font-weight:bold; text-align:center; margin: 0 0 0.5rem 0;">'
@@ -318,43 +235,62 @@ def main():
         if 'prev_include_community' not in st.session_state:
             st.session_state.prev_include_community = True
         if include_community != st.session_state.prev_include_community:
-            st.session_state.date_range = []
+            st.session_state.date_range = []  # Reset date to trigger sensible default
             st.session_state.prev_include_community = include_community
+        
+        # Refresh button
+        if st.button("↻ Refresh Government Data"):
+            load_gov_data.clear()
+            st.success("Government data refreshed from ArcGIS!")
+            st.rerun()
         
         st.markdown('<div class="sidebar-card">Filters</div>', unsafe_allow_html=True)
         
+        # Combined or government-only dataframe
         if include_community:
             combined_df = pd.concat([df, community_df], ignore_index=True)
-            min_date = combined_df['Date_Sample_Collected'].min()
-            max_date = combined_df['Date_Sample_Collected'].max()
         else:
             combined_df = df.copy()
-            min_date = df['Date_Sample_Collected'].min()
-            max_date = df['Date_Sample_Collected'].max()
         
-        if pd.isna(min_date) or pd.isna(max_date):
+        # Safe min/max dates
+        if combined_df.empty or 'Date_Sample_Collected' not in combined_df.columns:
             min_date = pd.to_datetime('2020-01-01')
             max_date = pd.to_datetime('2030-12-31')
+        else:
+            min_date = combined_df['Date_Sample_Collected'].min()
+            max_date = combined_df['Date_Sample_Collected'].max()
+            if pd.isna(min_date):
+                min_date = pd.to_datetime('2020-01-01')
+            if pd.isna(max_date):
+                max_date = pd.to_datetime('2030-12-31')
         
-        all_species = sorted(combined_df['Result_Name'].dropna().unique())
+        # All available species
+        all_species = sorted(combined_df['Result_Name'].dropna().unique()) if 'Result_Name' in combined_df else []
         
-        # Default to Karenia species
-        karenia_defaults = [s for s in all_species if "Karenia" in s]
-        if "species_multiselect" not in st.session_state:
-            st.session_state["species_multiselect"] = karenia_defaults
+        # ── Safer species selection logic ──
+        previous_selected = st.session_state.get("species_multiselect", [])
+        valid_previous = [s for s in previous_selected if s in all_species]
+        
+        if not valid_previous:
+            karenia_defaults = [s for s in all_species if "Karenia" in s]
+            default_species = karenia_defaults if karenia_defaults else (all_species[:3] if all_species else [])
+        else:
+            default_species = valid_previous
         
         species_selected = st.multiselect(
             "Select species (via dropdown or start typing, *denotes community data)",
             options=all_species,
-            default=st.session_state["species_multiselect"],
+            default=default_species,
             key="species_multiselect"
         )
         
         # Date range
         last_two_weeks_start = max_date - timedelta(days=14)
+        default_date_range = [last_two_weeks_start.date(), max_date.date()]
+        
         date_range = st.date_input(
             "Date range (year/month/day format)",
-            value=st.session_state.date_range if st.session_state.date_range else [last_two_weeks_start.date(), max_date.date()],
+            value=st.session_state.date_range if st.session_state.date_range else default_date_range,
             min_value=min_date.date(),
             max_value=max_date.date(),
             key="date_input"
@@ -384,22 +320,18 @@ def main():
         
         st.markdown(f'<div class="records-count">Showing {filtered_records} records matching selected species and date range</div>', unsafe_allow_html=True)
         
-        # Disclaimer
+        # Disclaimer (shortened - expand as needed)
         st.markdown(
             """
             <div style="font-size:11px; color:#666; margin-top:10px; margin-bottom:20px; padding:4px; border-top:1px solid #ddd;">
             <p style="margin-bottom: 10px;">An instructional video on use of this dashboard can be found <a href="https://vimeo.com/manage/videos/1126101537" target="_blank">here</a>.</p>
-            <p>Disclaimer: This application is a research product that utilises publicly available
-            <a href="https://experience.arcgis.com/experience/5f0d6b22301a47bf91d198cabb030670" target="_blank">
-            data</a> from the South Australian Government. No liability is accepted
-            by the creator (A/Prof. Luke Mosley) or Adelaide University for the use
-            of this system or the data it contains...</p>
-            <!-- shortened for brevity - add full text as needed -->
+            <p>Disclaimer: This application is a research product that utilises publicly available data from the South Australian Government...</p>
             </div>
             """,
             unsafe_allow_html=True
         )
     
+    # ── Rest of your app remains unchanged ──
     # Filter main data
     mask_main = (
         df['Result_Name'].isin(species_selected) &
@@ -417,7 +349,7 @@ def main():
         )
         comm_sub_df = community_df[mask_comm].copy()
     
-    # Map
+    # Map (your existing map code here - unchanged)
     m = folium.Map(location=[-34.9, 138.6], zoom_start=6, control_scale=True)
     
     folium.TileLayer(
@@ -439,7 +371,7 @@ def main():
         if pd.notna(row.get('Latitude')) and pd.notna(row.get('Longitude')):
             value = row['Result_Value_Numeric']
             color = colormap(value)
-            popup = f"<b>{row['Site_Description']}</b><br>{row['Date_Sample_Collected'].date()}<br>{row['Result_Name']}<br>{value:,.0f} {row.get('Units', 'cells/L')}"
+            popup = f"<b>{row.get('Site_Description', 'Unknown')}</b><br>{row['Date_Sample_Collected'].date()}<br>{row['Result_Name']}<br>{value:,.0f} {row.get('Units', 'cells/L')}"
             folium.CircleMarker(
                 location=[row['Latitude'], row['Longitude']],
                 radius=6, color=color, fill=True, fill_color=color, fill_opacity=0.8,
@@ -450,7 +382,7 @@ def main():
         if pd.notna(row.get('Latitude')) and pd.notna(row.get('Longitude')):
             value = row['Result_Value_Numeric']
             color = colormap(value)
-            popup = f"<b>{row['Site_Description']}</b><br>{row['Date_Sample_Collected'].date()}<br>{row['Result_Name']}<br>{value:,.0f} {row.get('Units', 'cells/L')}"
+            popup = f"<b>{row.get('Site_Description', 'Unknown')}</b><br>{row['Date_Sample_Collected'].date()}<br>{row['Result_Name']}<br>{value:,.0f} {row.get('Units', 'cells/L')}"
             folium.CircleMarker(
                 location=[row['Latitude'], row['Longitude']],
                 radius=6, color=color, fill=True, fill_color=color, fill_opacity=0.8,
@@ -459,20 +391,20 @@ def main():
     
     if not sub_df.empty or not comm_sub_df.empty:
         combined_sub = pd.concat([sub_df, comm_sub_df])
-        bounds = [[combined_sub['Latitude'].min(), combined_sub['Longitude'].min()],
-                  [combined_sub['Latitude'].max(), combined_sub['Longitude'].max()]]
-        if all(pd.notna(x) for x in [bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1]]):
-            m.fit_bounds(bounds)
+        lat_min, lat_max = combined_sub['Latitude'].min(), combined_sub['Latitude'].max()
+        lon_min, lon_max = combined_sub['Longitude'].min(), combined_sub['Longitude'].max()
+        if all(pd.notna(x) for x in [lat_min, lat_max, lon_min, lon_max]):
+            m.fit_bounds([[lat_min, lon_min], [lat_max, lon_max]])
     
     st_folium(m, width='100%', height=550)
     
-    # Trends section
+    # Trends section (unchanged - but add guard if needed)
     st.subheader("Trends Over Time")
     include_comm_in_trends = st.checkbox("Include community data in trends", value=include_community)
     
     base_trends_df = pd.concat([df, community_df], ignore_index=True) if include_comm_in_trends and include_community else df.copy()
     
-    all_species_trends = sorted(base_trends_df['Result_Name'].dropna().unique())
+    all_species_trends = sorted(base_trends_df['Result_Name'].dropna().unique()) if 'Result_Name' in base_trends_df else []
     default_trend_species = [s for s in all_species_trends if "Karenia" in s] or all_species_trends[:3]
     
     selected_trend_species = st.multiselect(
@@ -515,17 +447,17 @@ def main():
             tooltip=['Date_Sample_Collected', 'Species', 'Cell_Count']
         ).properties(
             width=800, height=400,
-            title="Trends for selected species (average values if 'All Sites' selected, * = community data)"
+            title="Trends for selected species (average if 'All Sites', * = community)"
         ).interactive()
         
         st.altair_chart(base_chart, use_container_width=True)
         st.caption(f"Showing {len(plot_df)} data points across {len(selected_trend_species)} species and {selected_site.lower()}.")
     else:
-        st.info("No data available for the selected species and site.")
+        st.info("No data available for selected species and site.")
     
-    # NASA PACE image section (unchanged)
+    # NASA PACE section (unchanged)
     st.subheader("NASA PACE Satellite Remote Sensing Reflectance Image")
-    st.caption("This map is derived from NASA PACE satellite imagery ... [your full caption here]")
+    st.caption("This map is derived from NASA PACE satellite imagery processed on date(s) (UTC) indicated on the plot...")
     
     if os.path.exists("pace_rrs_at_470.0_nm.png"):
         st.image("pace_rrs_at_470.0_nm.png", use_container_width=True)
