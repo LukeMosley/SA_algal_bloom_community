@@ -218,11 +218,39 @@ def main():
 
         # Your species multiselect logic ...
 
+        # ... after calculating combined_df, min_date, max_date ...
+
+        all_species = sorted(combined_df['Result_Name'].dropna().unique().tolist()) if 'Result_Name' in combined_df else []
+
+        # Debug: show what species are actually available
+        st.sidebar.caption(f"Available species count: {len(all_species)}")
+        if all_species:
+            st.sidebar.caption("First 10 species: " + ", ".join(all_species[:10]))
+        else:
+            st.sidebar.warning("No species names found in data.")
+
+        # Safe default: only Karenia that actually exist in all_species
+        karenia_defaults = [s for s in all_species if "karenia" in s.lower()]
+        if karenia_defaults:
+            default_species = karenia_defaults[:3]  # limit to avoid overload
+        else:
+            default_species = all_species[:3] if all_species else []
+
+        # Extra safety: filter defaults to only those in options
+        default_species = [s for s in default_species if s in all_species]
+
+        previous_selected = st.session_state.get("species_multiselect", [])
+        valid_previous = [s for s in previous_selected if s in all_species]
+
+        if valid_previous:
+            default_species = valid_previous
+
         species_selected = st.multiselect(
-            "Select species ...",
+            "Select species (via dropdown or start typing, *denotes community data)",
             options=all_species,
-            default=...,  # your logic
-            key="species_multiselect"
+            default=default_species,
+            key="species_multiselect",
+            placeholder="Select one or more species..."
         )
 
         # Your date_input ...
