@@ -74,28 +74,34 @@ def load_gov_data():
     # -------------------------
     # 🔎 Detect Join Key Automatically
     # -------------------------
-    possible_sample_keys = [c for c in sample_df.columns if "site" in c.lower()]
-    possible_site_keys = [c for c in sites_df.columns if "site" in c.lower()]
-
-    if not possible_sample_keys or not possible_site_keys:
-        st.error("Could not detect site join columns automatically.")
-        st.write("Sample columns:", sample_df.columns.tolist())
-        st.write("Site columns:", sites_df.columns.tolist())
-        return pd.DataFrame()
-
-    sample_key = possible_sample_keys[0]
-    site_key = possible_site_keys[0]
-
-    # Force string type for safe join
-    sample_df[sample_key] = sample_df[sample_key].astype(str)
-    sites_df[site_key] = sites_df[site_key].astype(str)
-
-    st.write("Sample columns:", sample_df.columns.tolist())
-    st.write("Sites columns:", sites_df.columns.tolist())
+    # -------------------------
+    # 🔗 Correct Join (Explicit)
+    # -------------------------
     
-    sites_df = sites_df.rename(columns={site_key: sample_key})
+    SAMPLE_KEY = "Site_Number"
+    SITE_KEY = "SiteNumber"
+    
+    # Convert to string for safe matching
+    sample_df[SAMPLE_KEY] = sample_df[SAMPLE_KEY].astype(str)
+    sites_df[SITE_KEY] = sites_df[SITE_KEY].astype(str)
+    
+    # Rename for merge
+    sites_df = sites_df.rename(columns={SITE_KEY: SAMPLE_KEY})
+    
+    # Merge ONLY required columns from sites
+    merged_df = sample_df.merge(
+        sites_df[["Site_Number", "Latitude", "Longitude", "SiteName", "Region"]],
+        on="Site_Number",
+        how="left"
+    )
 
-    merged_df = sample_df.merge(sites_df, on=sample_key, how="left")
+# Ensure numeric coordinates
+merged_df["Latitude"] = pd.to_numeric(merged_df["Latitude"], errors="coerce")
+merged_df["Longitude"] = pd.to_numeric(merged_df["Longitude"], errors="coerce")
+
+st.sidebar.caption(
+    f"Gov rows with coords: {merged_df[['Latitude','Longitude']].dropna().shape[0]}"
+)
 
     # -------------------------
     # 🔎 Date Handling (epoch OR string)
