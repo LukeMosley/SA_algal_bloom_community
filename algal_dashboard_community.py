@@ -69,23 +69,21 @@ def fetch_from_arcgis(base_url, layer_id, is_point=False):
     df = pd.DataFrame(rows)
     return df
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=7200)  # Recommended: 2 hours as discussed
 def load_gov_data():
     BASE_SERVICE_URL = "https://services6.arcgis.com/WS2XycMNFieWAsfS/arcgis/rest/services/HarmfulAlgalBloom_MonitoringSites/FeatureServer"
     
-    # Layer 1 = Sample Data (table, no geometry)
+    # Layer 1 = Sample Data (table)
     sample_df = fetch_from_arcgis(BASE_SERVICE_URL, 1, is_point=False)
     
     if sample_df.empty:
         st.warning("No sample data retrieved from ArcGIS.")
     else:
-        # Handle Date_Sample_Collected - often comes as Unix ms timestamp
         if 'Date_Sample_Collected' in sample_df.columns:
             sample_df['Date_Sample_Collected'] = pd.to_datetime(
                 sample_df['Date_Sample_Collected'], unit='ms', errors='coerce'
             )
         
-        # Clean Result_Name
         if 'Result_Name' in sample_df.columns:
             sample_df['Result_Name'] = (
                 sample_df['Result_Name']
@@ -95,25 +93,39 @@ def load_gov_data():
                 .str.replace('\xa0', ' ', regex=False)
             )
     
-    # Layer 0 = Monitoring Sites (points with geometry)
+    # Layer 0 = Monitoring Sites (points)
     sites_df = fetch_from_arcgis(BASE_SERVICE_URL, 0, is_point=True)
     
     if sites_df.empty:
         st.error("No monitoring site locations retrieved from ArcGIS.")
         st.stop()
     
-    # Assume Site_Description is the join key - adjust if needed after testing
-    join_key = 'Site_Description'
-    if join_key not in sample_df.columns or join_key not in sites_df.columns:
-        st.error(f"Join key '{join_key}' not found in one or both datasets.")
+    # Join Sites and Data using Join Key
+    join_key = 'Site_Number'  # Matches Site_Number in samples and SiteNumber in sites
+    
+    # Optional safety check (you can keep or remove after testing)
+    if join_key not in sample_df.columns:
+        st.error(f"Join key '{join_key}' not found in sample data columns: {list(sample_df.columns)}")
+        st.stop()
+    if 'SiteNumber' not in sites_df.columns:  # Note: Layer 0 uses SiteNumber (no underscore)
+        st.error(f"Join key equivalent 'SiteNumber' not found in sites columns: {list(sites_df.columns)}")
         st.stop()
     
-    # Merge coordinates into sample data
+    # Merge: Use the sample_df column name ('Site_Number') and rename sites column if needed
+    # But pandas merge can handle different names with left_on / right_on
     merged_df = sample_df.merge(
-        sites_df[[join_key, 'Latitude', 'Longitude']],
-        on=join_key,
+        sites_df.rename(columns={'SiteNumber': 'Site_Number'}),  # Align names
+        on='Site_Number',
         how='left'
     )
+    
+    # Or alternatively (cleaner if you prefer explicit):
+    # merged_df = sample_df.merge(
+    #     sites_df[['SiteNumber', 'Latitude', 'Longitude']],
+    #     left_on='Site_Number',
+    #     right_on='SiteNumber',
+    #     how='left'
+    # ).drop(columns=['SiteNumber'])  # optional cleanup
     
     merged_df['Latitude'] = pd.to_numeric(merged_df['Latitude'], errors='coerce')
     merged_df['Longitude'] = pd.to_numeric(merged_df['Longitude'], errors='coerce')
