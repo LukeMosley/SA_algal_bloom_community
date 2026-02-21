@@ -66,65 +66,61 @@ def load_gov_data():
         return pd.DataFrame()
 
     # -------------------------
-    # 🔎 Clean & Standardise Column Names
+    # Clean column names
     # -------------------------
     sample_df.columns = sample_df.columns.str.strip()
     sites_df.columns = sites_df.columns.str.strip()
 
     # -------------------------
-    # 🔎 Detect Join Key Automatically
+    # Explicit Join
     # -------------------------
-    # -------------------------
-    # 🔗 Correct Join (Explicit)
-    # -------------------------
-    
     SAMPLE_KEY = "Site_Number"
     SITE_KEY = "SiteNumber"
-    
-    # Convert to string for safe matching
+
+    if SAMPLE_KEY not in sample_df.columns:
+        st.error(f"{SAMPLE_KEY} not found in sample data.")
+        return pd.DataFrame()
+
+    if SITE_KEY not in sites_df.columns:
+        st.error(f"{SITE_KEY} not found in site geometry.")
+        return pd.DataFrame()
+
     sample_df[SAMPLE_KEY] = sample_df[SAMPLE_KEY].astype(str)
     sites_df[SITE_KEY] = sites_df[SITE_KEY].astype(str)
-    
-    # Rename for merge
+
     sites_df = sites_df.rename(columns={SITE_KEY: SAMPLE_KEY})
-    
-    # Merge ONLY required columns from sites
+
     merged_df = sample_df.merge(
         sites_df[["Site_Number", "Latitude", "Longitude", "SiteName", "Region"]],
         on="Site_Number",
         how="left"
     )
 
-# Ensure numeric coordinates
-merged_df["Latitude"] = pd.to_numeric(merged_df["Latitude"], errors="coerce")
-merged_df["Longitude"] = pd.to_numeric(merged_df["Longitude"], errors="coerce")
-
-st.sidebar.caption(
-    f"Gov rows with coords: {merged_df[['Latitude','Longitude']].dropna().shape[0]}"
-)
+    # -------------------------
+    # Ensure numeric coordinates
+    # -------------------------
+    merged_df["Latitude"] = pd.to_numeric(merged_df["Latitude"], errors="coerce")
+    merged_df["Longitude"] = pd.to_numeric(merged_df["Longitude"], errors="coerce")
 
     # -------------------------
-    # 🔎 Date Handling (epoch OR string)
+    # Date handling
     # -------------------------
-    date_col = [c for c in merged_df.columns if "date" in c.lower()]
-    if date_col:
-        date_col = date_col[0]
+    if "Date_Sample_Collected" in merged_df.columns:
 
-        if pd.api.types.is_numeric_dtype(merged_df[date_col]):
-            merged_df[date_col] = pd.to_datetime(
-                merged_df[date_col], unit="ms", errors="coerce"
+        if pd.api.types.is_numeric_dtype(merged_df["Date_Sample_Collected"]):
+            merged_df["Date_Sample_Collected"] = pd.to_datetime(
+                merged_df["Date_Sample_Collected"], unit="ms", errors="coerce"
             )
         else:
-            merged_df[date_col] = pd.to_datetime(
-                merged_df[date_col], errors="coerce"
+            merged_df["Date_Sample_Collected"] = pd.to_datetime(
+                merged_df["Date_Sample_Collected"], errors="coerce"
             )
 
-        merged_df = merged_df.rename(columns={date_col: "Date_Sample_Collected"})
     else:
-        st.warning("No date column detected in government data.")
+        st.warning("Date_Sample_Collected column not found.")
 
     # -------------------------
-    # 🔎 Clean Species Names
+    # Clean species names
     # -------------------------
     if "Result_Name" in merged_df.columns:
         merged_df["Result_Name"] = (
@@ -135,7 +131,7 @@ st.sidebar.caption(
         )
 
     # -------------------------
-    # 🔎 Ensure Numeric Values
+    # Ensure numeric values
     # -------------------------
     if "Result_Value_Numeric" in merged_df.columns:
         merged_df["Result_Value_Numeric"] = pd.to_numeric(
@@ -143,13 +139,7 @@ st.sidebar.caption(
             errors="coerce"
         )
 
-    # -------------------------
-    # 🔎 Ensure Coordinates Numeric
-    # -------------------------
-    merged_df["Latitude"] = pd.to_numeric(merged_df.get("Latitude"), errors="coerce")
-    merged_df["Longitude"] = pd.to_numeric(merged_df.get("Longitude"), errors="coerce")
-
-    # Debug info (safe)
+    # Debug (safe)
     st.sidebar.caption(f"Gov rows: {len(merged_df)}")
     st.sidebar.caption(
         f"Gov rows with coords: {merged_df[['Latitude','Longitude']].dropna().shape[0]}"
