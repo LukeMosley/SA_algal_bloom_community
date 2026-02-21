@@ -90,6 +90,9 @@ def load_gov_data():
     sample_df[sample_key] = sample_df[sample_key].astype(str)
     sites_df[site_key] = sites_df[site_key].astype(str)
 
+    st.write("Sample columns:", sample_df.columns.tolist())
+    st.write("Sites columns:", sites_df.columns.tolist())
+    
     sites_df = sites_df.rename(columns={site_key: sample_key})
 
     merged_df = sample_df.merge(sites_df, on=sample_key, how="left")
