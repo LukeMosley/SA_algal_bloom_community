@@ -148,6 +148,13 @@ def load_gov_data():
 
     return merged_df
 
+st.sidebar.write("Sample dates head (raw from ArcGIS):", df["Date_Sample_Collected"].head(10))
+st.sidebar.write("Date dtype after conversion:", df["Date_Sample_Collected"].dtype)
+st.sidebar.write("Number of valid dates:", df["Date_Sample_Collected"].notna().sum())
+st.sidebar.write("Min/max date after conversion:", 
+                df["Date_Sample_Collected"].min(), df["Date_Sample_Collected"].max())
+st.sidebar.write("Sample Result_Name values:", df["Result_Name"].dropna().unique()[:10])
+
 @st.cache_data
 def load_community(file_path="MASTER spreadsheet of community summaries.xlsx"):
 
@@ -311,6 +318,12 @@ def main():
                 max_date = pd.to_datetime('2030-12-31')
         
         all_species = sorted(combined_df['Result_Name'].dropna().unique()) if 'Result_Name' in combined_df else []
+
+st.sidebar.write("Sample dates head (raw from ArcGIS):", df["Date_Sample_Collected"].head(10))
+st.sidebar.write("Date dtype after conversion:", df["Date_Sample_Collected"].dtype)
+st.sidebar.write("Number of valid dates:", df["Date_Sample_Collected"].notna().sum())
+st.sidebar.write("Min/max date after conversion:", df["Date_Sample_Collected"].min(), df["Date_Sample_Collected"].max())
+st.sidebar.write("Sample Result_Name values:", df["Result_Name"].dropna().unique()[:10])
         
         previous_selected = st.session_state.get("species_multiselect", [])
         valid_previous = [s for s in previous_selected if s in all_species]
