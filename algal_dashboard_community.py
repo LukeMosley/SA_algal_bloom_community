@@ -14,7 +14,6 @@ import requests
 @st.cache_data(ttl=3600)
 def fetch_from_arcgis(base_url, layer_id, is_point=False):
     query_url = f"{base_url}/{layer_id}/query"
-
     params = {
         'where': '1=1',
         'outFields': '*',
@@ -22,33 +21,35 @@ def fetch_from_arcgis(base_url, layer_id, is_point=False):
         'outSR': '4326',
         'f': 'json'
     }
-
-    try:
-        r = requests.get(query_url, params=params, timeout=20)
-        r.raise_for_status()
-        data = r.json()
-    except Exception as e:
-        st.error(f"ArcGIS request failed (layer {layer_id}): {e}")
-        return pd.DataFrame()
-
-    features = data.get("features", [])
-    if not features:
+    rows = []
+    offset = 0
+    while True:
+        params['resultOffset'] = offset
+        try:
+            r = requests.get(query_url, params=params, timeout=20)
+            r.raise_for_status()
+            data = r.json()
+        except Exception as e:
+            st.error(f"ArcGIS request failed (layer {layer_id}): {e}")
+            return pd.DataFrame()
+        features = data.get("features", [])
+        if not features:
+            break
+        for f in features:
+            attrs = f.get("attributes", {}).copy()
+            if is_point:
+                geom = f.get("geometry", {})
+                attrs["Longitude"] = geom.get("x")
+                attrs["Latitude"] = geom.get("y")
+            rows.append(attrs)
+        if not data.get("exceededTransferLimit", False):
+            break
+        offset += len(features)
+    if not rows:
         st.warning(f"No features returned from layer {layer_id}")
         return pd.DataFrame()
-
-    rows = []
-    for f in features:
-        attrs = f.get("attributes", {}).copy()
-
-        if is_point:
-            geom = f.get("geometry", {})
-            attrs["Longitude"] = geom.get("x")
-            attrs["Latitude"] = geom.get("y")
-
-        rows.append(attrs)
-
     return pd.DataFrame(rows)
-
+    
 @st.cache_data(ttl=7200)
 def load_gov_data():
 
