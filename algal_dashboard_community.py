@@ -6,7 +6,7 @@ import streamlit as st
 import altair as alt
 import os
 import requests
-from datetime import timedelta, time as dt_time
+from datetime import timedelta
 
 
 # ---------------------------------------------------------------------------
@@ -66,7 +66,7 @@ def load_data():
     sites = sites.rename(columns={"SiteName": "Site_Description"})
 
     # ------------------------------------------------------------------
-    # Cleaning (same logic as your original code)
+    # Cleaning (same logic as original)
     # ------------------------------------------------------------------
     df.columns = df.columns.str.strip()
     df["Date_Sample_Collected"] = pd.to_datetime(df["Date_Sample_Collected"], errors="coerce")
@@ -219,7 +219,7 @@ def main():
         initial_sidebar_state="expanded",
     )
 
-    # Custom CSS (unchanged)
+    # Custom CSS
     st.markdown(
         """
     <style>
@@ -335,7 +335,7 @@ def main():
     )
 
     # ------------------------------------------------------------------
-    # Load data (government data is now automatic)
+    # Load data
     # ------------------------------------------------------------------
     with st.spinner("Downloading latest government data from ArcGIS… (first load or cache refresh only)"):
         df = load_data()
@@ -358,14 +358,40 @@ def main():
             unsafe_allow_html=True,
         )
 
-        # Colorbar
+        # ---------- Colour bar + adjustable scale ----------
+        def fmt(n):
+            if n >= 1_000_000:
+                return f"{n/1_000_000:.1f}M"
+            if n >= 1_000:
+                return f"{n/1_000:.0f}k"
+            return f"{int(n):,}"
+
+        # Slider first so we can use the value for labels
+        vmax = st.slider(
+            "Colour scale maximum (cells/L)",
+            min_value=10_000,
+            max_value=1_000_000,
+            value=500_000,
+            step=10_000,
+            help="Adjust the upper limit of the colour scale. All values ≥ this number will appear the same colour (yellow).",
+        )
+
+        # Dynamic labels that match the current vmax
+        labels_html = (
+            f"<span>{fmt(0)}</span>"
+            f"<span>{fmt(0.2 * vmax)}</span>"
+            f"<span>{fmt(0.4 * vmax)}</span>"
+            f"<span>{fmt(0.6 * vmax)}</span>"
+            f"<span>{fmt(vmax)}</span>"
+            f"<span>&gt;{fmt(vmax)}</span>"
+        )
+
         st.markdown(
-            """
+            f"""
             <div class="colorbar-wrapper">
                 <div class="colorbar-container"></div>
                 <div class="colorbar-labels">
-                    <span>0</span><span>100,000</span><span>200,000</span>
-                    <span>300,000</span><span>400,000</span><span>>500,000</span>
+                    {labels_html}
                 </div>
             </div>
             <div class="colorbar-units">Cell count per L</div>
@@ -556,12 +582,13 @@ def main():
     ).add_to(m)
     folium.LayerControl(position="bottomright").add_to(m)
 
+    # Colour scale now uses the user-selected vmax
     viridis_colors = ["#641478", "#89CFF0", "#21908c", "#5dc863", "#fde725"]
     colormap = LinearColormap(
         colors=viridis_colors,
-        index=[0, 100000, 200000, 300000, 500000],
+        index=[0, 0.2 * vmax, 0.4 * vmax, 0.6 * vmax, vmax],
         vmin=0,
-        vmax=500000,
+        vmax=vmax,
     )
 
     # Community markers
